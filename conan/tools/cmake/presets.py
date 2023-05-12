@@ -28,18 +28,20 @@ class _CMakePresets:
             if "CMAKE_SH" not in cache_variables:
                 cache_variables["CMAKE_SH"] = "CMAKE_SH-NOTFOUND"
 
-            cmake_make_program = conanfile.conf.get("tools.gnu:make_program",
-                                                    default=cache_variables.get("CMAKE_MAKE_PROGRAM"))
-            if cmake_make_program:
+            if cmake_make_program := conanfile.conf.get(
+                "tools.gnu:make_program",
+                default=cache_variables.get("CMAKE_MAKE_PROGRAM"),
+            ):
                 cmake_make_program = cmake_make_program.replace("\\", "/")
                 cache_variables["CMAKE_MAKE_PROGRAM"] = cmake_make_program
 
         if "CMAKE_POLICY_DEFAULT_CMP0091" not in cache_variables:
             cache_variables["CMAKE_POLICY_DEFAULT_CMP0091"] = "NEW"
 
-        if "BUILD_TESTING" not in cache_variables:
-            if conanfile.conf.get("tools.build:skip_test", check_type=bool):
-                cache_variables["BUILD_TESTING"] = "OFF"
+        if "BUILD_TESTING" not in cache_variables and conanfile.conf.get(
+            "tools.build:skip_test", check_type=bool
+        ):
+            cache_variables["BUILD_TESTING"] = "OFF"
 
         preset_path = os.path.join(conanfile.generators_folder, "CMakePresets.json")
         multiconfig = is_multi_configuration(generator)
@@ -67,8 +69,9 @@ class _CMakePresets:
     def _insert_preset(data, preset_type, preset):
         presets = data.setdefault(preset_type, [])
         preset_name = preset["name"]
-        positions = [index for index, p in enumerate(presets) if p["name"] == preset_name]
-        if positions:
+        if positions := [
+            index for index, p in enumerate(presets) if p["name"] == preset_name
+        ]:
             data[preset_type][positions[0]] = preset
         else:
             data[preset_type].append(preset)
@@ -83,14 +86,14 @@ class _CMakePresets:
         conf = _CMakePresets._configure_preset(conanfile, generator, cache_variables, toolchain_file,
                                                multiconfig, preset_prefix)
         build = _CMakePresets._build_and_test_preset_fields(conanfile, multiconfig, preset_prefix)
-        ret = {"version": 3,
-               "vendor": {"conan": {}},
-               "cmakeMinimumRequired": {"major": 3, "minor": 15, "patch": 0},
-               "configurePresets": [conf],
-               "buildPresets": [build],
-               "testPresets": [build]
-               }
-        return ret
+        return {
+            "version": 3,
+            "vendor": {"conan": {}},
+            "cmakeMinimumRequired": {"major": 3, "minor": 15, "patch": 0},
+            "configurePresets": [conf],
+            "buildPresets": [build],
+            "testPresets": [build],
+        }
 
     @staticmethod
     def _configure_preset(conanfile, generator, cache_variables, toolchain_file, multiconfig,
@@ -180,10 +183,7 @@ class _CMakePresets:
             return custom_conf
 
         if custom_conf:
-            if build_type:
-                return "{}-{}".format(custom_conf, build_type.lower())
-            else:
-                return custom_conf
+            return f"{custom_conf}-{build_type.lower()}" if build_type else custom_conf
         return build_type.lower() if build_type else "default"
 
     @staticmethod
@@ -198,7 +198,7 @@ class _CMakePresets:
             return "default" if not custom_conf else custom_conf
 
         if custom_conf:
-            return "{}-{}".format(custom_conf, str(build_type).lower())
+            return f"{custom_conf}-{str(build_type).lower()}"
         else:
             return str(build_type).lower()
 
@@ -234,8 +234,7 @@ class _IncludingPresets:
             inherited_user = _IncludingPresets._collect_user_inherits(output_dir, preset_prefix)
 
         if not os.path.exists(user_presets_path):
-            data = {"version": 4,
-                    "vendor": {"conan": dict()}}
+            data = {"version": 4, "vendor": {"conan": {}}}
             for preset, inherits in inherited_user.items():
                 for i in inherits:
                     data.setdefault(preset, []).append({"name": i})
@@ -272,8 +271,9 @@ class _IncludingPresets:
                         inherits = preset.get("inherits", [])
                         if isinstance(inherits, str):
                             inherits = [inherits]
-                        conan_inherits = [i for i in inherits if i.startswith(preset_prefix)]
-                        if conan_inherits:
+                        if conan_inherits := [
+                            i for i in inherits if i.startswith(preset_prefix)
+                        ]:
                             collected_targets.setdefault(preset_type, []).extend(conan_inherits)
         return collected_targets
 

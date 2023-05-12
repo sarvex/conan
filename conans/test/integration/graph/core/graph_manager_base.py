@@ -41,7 +41,7 @@ class GraphManagerTest(unittest.TestCase):
         self._put_in_cache(ref, conanfile)
 
     def _put_in_cache(self, ref, conanfile):
-        ref = RecipeReference.loads("{}#123".format(ref))
+        ref = RecipeReference.loads(f"{ref}#123")
         ref.timestamp = revision_timestamp_now()
         layout = self.cache.get_or_create_ref_layout(ref)
         save(layout.conanfile(), str(conanfile))
@@ -52,7 +52,7 @@ class GraphManagerTest(unittest.TestCase):
         # FIXME: This seems duplicated
         if not isinstance(ref, RecipeReference):
             ref = RecipeReference.loads(ref)
-        ref = RecipeReference.loads(repr(ref) + "#{}".format(revision or 123))  # FIXME: Make access
+        ref = RecipeReference.loads(f"{repr(ref)}#{revision or 123}")
         ref.timestamp = revision_timestamp_now()
         recipe_layout = self.cache.get_or_create_ref_layout(ref)
         save(recipe_layout.conanfile(), str(test_conanfile))

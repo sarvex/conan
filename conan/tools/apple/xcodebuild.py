@@ -12,26 +12,35 @@ class XcodeBuild(object):
 
     @property
     def _verbosity(self):
-        verbosity = self._conanfile.conf.get("tools.build:verbosity")
-        if verbosity:
-            if verbosity not in ("quiet", "error", "warning", "notice", "status", "verbose",
-                                 "normal", "debug", "v", "trace", "vv"):
+        if verbosity := self._conanfile.conf.get("tools.build:verbosity"):
+            if verbosity not in (
+                "quiet",
+                "error",
+                "warning",
+                "notice",
+                "status",
+                "verbose",
+                "normal",
+                "debug",
+                "v",
+                "trace",
+                "vv",
+            ):
                 raise ConanException(f"Value '{verbosity}' for 'tools.build:verbosity' is not valid")
-            else:
-                # quiet, nothing, verbose
-                verbosity = {"quiet": "quiet",
-                             "error": "quiet",
-                             "warning": "quiet",
-                             "notice": "quiet",
-                             "status": None,
-                             "verbose": None,
-                             "normal": None,
-                             "debug": "verbose",
-                             "v": "verbose",
-                             "trace": "verbose",
-                             "vv": "verbose"}.get(verbosity)
-                if verbosity is not None:
-                    return "-{}".format(verbosity)
+            # quiet, nothing, verbose
+            verbosity = {"quiet": "quiet",
+                         "error": "quiet",
+                         "warning": "quiet",
+                         "notice": "quiet",
+                         "status": None,
+                         "verbose": None,
+                         "normal": None,
+                         "debug": "verbose",
+                         "v": "verbose",
+                         "trace": "verbose",
+                         "vv": "verbose"}.get(verbosity)
+            if verbosity is not None:
+                return f"-{verbosity}"
         return ""
 
     @property
@@ -41,8 +50,8 @@ class XcodeBuild(object):
         # chosen by the build system
         sdk = self._conanfile.conf.get("tools.apple:sdk_path")
         if not sdk and self._sdk:
-            sdk = "{}{}".format(self._sdk, self._sdk_version)
-        return "SDKROOT={}".format(sdk) if sdk else ""
+            sdk = f"{self._sdk}{self._sdk_version}"
+        return f"SDKROOT={sdk}" if sdk else ""
 
     def build(self, xcodeproj, target=None):
         """
@@ -54,8 +63,6 @@ class XcodeBuild(object):
                        will build all the targets passing the ``-alltargets`` argument instead.
         :return: the return code for the launched ``xcodebuild`` command.
         """
-        target = "-target {}".format(target) if target else "-alltargets"
-        cmd = "xcodebuild -project {} -configuration {} -arch {} " \
-              "{} {} {}".format(xcodeproj, self._build_type, self._arch, self._sdkroot,
-                                self._verbosity, target)
+        target = f"-target {target}" if target else "-alltargets"
+        cmd = f"xcodebuild -project {xcodeproj} -configuration {self._build_type} -arch {self._arch} {self._sdkroot} {self._verbosity} {target}"
         self._conanfile.run(cmd)

@@ -50,7 +50,7 @@ def test_partials(client):
     assert "No package matching 'Bye' pattern found." in client.out
 
     for package in ["hello0", "hello1"]:
-        client.run("install . --build=%s" % package)
+        client.run(f"install . --build={package}")
         assert "No package matching" not in client.out
 
 

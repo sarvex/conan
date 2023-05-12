@@ -11,14 +11,14 @@ class BazelToolchain(object):
     def generate(self):
         check_duplicated_generator(self, self._conanfile)
         content = {}
-        configs = ",".join(self._conanfile.conf.get("tools.google.bazel:configs",
-                                                    default=[],
-                                                    check_type=list))
-        if configs:
+        if configs := ",".join(
+            self._conanfile.conf.get(
+                "tools.google.bazel:configs", default=[], check_type=list
+            )
+        ):
             content["bazel_configs"] = configs
 
-        bazelrc = self._conanfile.conf.get("tools.google.bazel:bazelrc_path")
-        if bazelrc:
+        if bazelrc := self._conanfile.conf.get("tools.google.bazel:bazelrc_path"):
             content["bazelrc_path"] = bazelrc
 
         save_toolchain_args(content, namespace=self._namespace)

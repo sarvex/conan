@@ -10,7 +10,7 @@ class CppPackage(object):
     DEFAULT_FILENAME = "cpp_package.json"
 
     def __init__(self):
-        self.components = dict()
+        self.components = {}
 
     @classmethod
     def load(cls, filename=DEFAULT_FILENAME):
@@ -49,9 +49,9 @@ class CppPackage(object):
             for generator, gname in component.names.items():
                 # TODO: probably we want to revisit all this stuff with the new absolute
                 #  target names via set_property
-                conanfile.cpp_info.components[cname].set_property("cmake_target_name",
-                                                                  "{}::{}".format(conanfile.ref.name,
-                                                                                  gname))
+                conanfile.cpp_info.components[cname].set_property(
+                    "cmake_target_name", f"{conanfile.ref.name}::{gname}"
+                )
 
     def add_component(self, name):
         """
@@ -72,6 +72,6 @@ class CppPackage(object):
                 self.requires = values["requires"]
                 self.libs = values["libs"]
             else:
-                self.names = dict()
+                self.names = {}
                 self.requires = []
                 self.libs = []

@@ -26,7 +26,6 @@ class Meson(object):
         """
         source_folder = self._conanfile.source_folder
         build_folder = self._conanfile.build_folder
-        cmd = "meson setup"
         generators_folder = self._conanfile.generators_folder
         cross = os.path.join(generators_folder, MesonToolchain.cross_filename)
         native = os.path.join(generators_folder, MesonToolchain.native_filename)
@@ -38,18 +37,22 @@ class Meson(object):
             cmd_param = " --native-file"
             meson_filenames.append(native)
 
-        machine_files = self._conanfile.conf.get("tools.meson.mesontoolchain:extra_machine_files",
-                                                 default=[], check_type=list)
-        if machine_files:
+        if machine_files := self._conanfile.conf.get(
+            "tools.meson.mesontoolchain:extra_machine_files",
+            default=[],
+            check_type=list,
+        ):
             meson_filenames.extend(machine_files)
 
-        cmd += "".join([f'{cmd_param} "{meson_option}"' for meson_option in meson_filenames])
-        cmd += ' "{}" "{}"'.format(build_folder, source_folder)
+        cmd = "meson setup" + "".join(
+            [f'{cmd_param} "{meson_option}"' for meson_option in meson_filenames]
+        )
+        cmd += f' "{build_folder}" "{source_folder}"'
         if self._conanfile.package_folder:
-            cmd += ' -Dprefix="{}"'.format(self._conanfile.package_folder)
+            cmd += f' -Dprefix="{self._conanfile.package_folder}"'
         if reconfigure:
             cmd += ' --reconfigure'
-        self._conanfile.output.info("Meson configure cmd: {}".format(cmd))
+        self._conanfile.output.info(f"Meson configure cmd: {cmd}")
         self._conanfile.run(cmd)
 
     def build(self, target=None):
@@ -61,13 +64,12 @@ class Meson(object):
         :param target: ``str`` Specifies the target to be executed.
         """
         meson_build_folder = self._conanfile.build_folder
-        cmd = 'meson compile -C "{}"'.format(meson_build_folder)
-        njobs = build_jobs(self._conanfile)
-        if njobs:
-            cmd += " -j{}".format(njobs)
+        cmd = f'meson compile -C "{meson_build_folder}"'
+        if njobs := build_jobs(self._conanfile):
+            cmd += f" -j{njobs}"
         if target:
-            cmd += " {}".format(target)
-        self._conanfile.output.info("Meson build cmd: {}".format(cmd))
+            cmd += f" {target}"
+        self._conanfile.output.info(f"Meson build cmd: {cmd}")
         self._conanfile.run(cmd)
 
     def install(self):
@@ -77,7 +79,7 @@ class Meson(object):
         """
         self.configure(reconfigure=True)  # To re-do the destination package-folder
         meson_build_folder = self._conanfile.build_folder
-        cmd = 'meson install -C "{}"'.format(meson_build_folder)
+        cmd = f'meson install -C "{meson_build_folder}"'
         self._conanfile.run(cmd)
 
     def test(self):
@@ -87,7 +89,7 @@ class Meson(object):
         if self._conanfile.conf.get("tools.build:skip_test", check_type=bool):
             return
         meson_build_folder = self._conanfile.build_folder
-        cmd = 'meson test -v -C "{}"'.format(meson_build_folder)
+        cmd = f'meson test -v -C "{meson_build_folder}"'
         # TODO: Do we need vcvars for test?
         # TODO: This should use conanrunenv, but what if meson itself is a build-require?
         self._conanfile.run(cmd)

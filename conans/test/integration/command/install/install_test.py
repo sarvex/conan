@@ -214,22 +214,22 @@ def test_install_argument_order(client):
                  "conanfile_boost.py": conanfile_boost})
     client.run("create conanfile_boost.py conan/stable")
     client.run("install . -o boost/*:shared=True --build=missing")
-    output_0 = "%s" % client.out
+    output_0 = f"{client.out}"
     client.run("install . -o boost/*:shared=True --build missing")
-    output_1 = "%s" % client.out
+    output_1 = f"{client.out}"
     client.run("install -o boost/*:shared=True . --build missing")
-    output_2 = "%s" % client.out
+    output_2 = f"{client.out}"
     client.run("install -o boost/*:shared=True --build missing .")
-    output_3 = "%s" % client.out
+    output_3 = f"{client.out}"
     assert "ERROR" not in output_3
     assert output_0 == output_1
     assert output_1 == output_2
     assert output_2 == output_3
 
     client.run("install -o boost/*:shared=True --build boost . --build missing")
-    output_4 = "%s" % client.out
+    output_4 = f"{client.out}"
     client.run("install -o boost/*:shared=True --build missing --build boost .")
-    output_5 = "%s" % client.out
+    output_5 = f"{client.out}"
     assert output_4 == output_5
 
 
@@ -247,7 +247,7 @@ def test_install_anonymous(client):
 def test_install_without_ref(client):
     client.save({"conanfile.py": GenConanfile("lib", "1.0")})
     client.run('create .')
-    assert "lib/1.0: Package '{}' created".format(NO_SETTINGS_PACKAGE_ID) in client.out
+    assert f"lib/1.0: Package '{NO_SETTINGS_PACKAGE_ID}' created" in client.out
 
     client.run('upload lib/1.0 -c -r default')
     assert "Uploading recipe 'lib/1.0" in client.out
@@ -257,7 +257,7 @@ def test_install_without_ref(client):
     # This fails, Conan thinks this is a path
     client.run('install lib/1.0', assert_error=True)
     fake_path = os.path.join(client.current_folder, "lib", "1.0")
-    assert "Conanfile not found at {}".format(fake_path) in client.out
+    assert f"Conanfile not found at {fake_path}" in client.out
 
     # Try this syntax to upload too
     client.run('install --requires=lib/1.0@')

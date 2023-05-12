@@ -25,7 +25,7 @@ class Git(object):
         :return: The console output of the command.
         """
         with chdir(self._conanfile, self.folder):
-            return check_output_runner("git {}".format(cmd)).strip()
+            return check_output_runner(f"git {cmd}").strip()
 
     def get_commit(self):
         """
@@ -33,15 +33,9 @@ class Git(object):
             The latest commit is returned, irrespective of local not committed changes.
         """
         try:
-            # commit = self.run("rev-parse HEAD") For the whole repo
-            # This rev-list knows to capture the last commit for the folder
-            # --full-history is needed to not avoid wrong commits:
-            # https://github.com/conan-io/conan/issues/10971
-            # https://git-scm.com/docs/git-rev-list#Documentation/git-rev-list.txt-Defaultmode
-            commit = self.run('rev-list HEAD -n 1 --full-history -- "."')
-            return commit
+            return self.run('rev-list HEAD -n 1 --full-history -- "."')
         except Exception as e:
-            raise ConanException("Unable to get git commit in '%s': %s" % (self.folder, str(e)))
+            raise ConanException(f"Unable to get git commit in '{self.folder}': {str(e)}")
 
     def get_remote_url(self, remote="origin"):
         """
@@ -78,10 +72,12 @@ class Git(object):
         if not remote:
             return False
         try:
-            branches = self.run("branch -r --contains {}".format(commit))
-            return "{}/".format(remote) in branches
+            branches = self.run(f"branch -r --contains {commit}")
+            return f"{remote}/" in branches
         except Exception as e:
-            raise ConanException("Unable to check remote commit in '%s': %s" % (self.folder, str(e)))
+            raise ConanException(
+                f"Unable to check remote commit in '{self.folder}': {str(e)}"
+            )
 
     def is_dirty(self):
         """
@@ -119,14 +115,13 @@ class Git(object):
         :param remote: Name of the remote git repository ('origin' by default).
         :return: (url, commit) tuple
         """
-        dirty = self.is_dirty()
-        if dirty:
-            raise ConanException("Repo is dirty, cannot capture url and commit: "
-                                 "{}".format(self.folder))
+        if dirty := self.is_dirty():
+            raise ConanException(
+                f"Repo is dirty, cannot capture url and commit: {self.folder}"
+            )
         commit = self.get_commit()
         url = self.get_remote_url(remote=remote)
-        in_remote = self.commit_in_remote(commit, remote=remote)
-        if in_remote:
+        if in_remote := self.commit_in_remote(commit, remote=remote):
             return url, commit
         # TODO: Once we know how to pass [conf] to export, enable this
         # conf_name = "tools.scm:local"
@@ -135,9 +130,9 @@ class Git(object):
         #    raise ConanException("Current commit {} doesn't exist in remote {}\n"
         #                         "use '-c {}=1' to allow it".format(commit, remote, conf_name))
 
-        self._conanfile.output.warning("Current commit {} doesn't exist in remote {}\n"
-                                       "This revision will not be buildable in other "
-                                       "computer".format(commit, remote))
+        self._conanfile.output.warning(
+            f"Current commit {commit} doesn't exist in remote {remote}\nThis revision will not be buildable in other computer"
+        )
         return self.get_repo_root(), commit
 
     def get_repo_root(self):
@@ -162,7 +157,7 @@ class Git(object):
             url = url.replace("\\", "/")  # Windows local directory
         mkdir(self.folder)
         self._conanfile.output.info("Cloning git repo")
-        self.run('clone "{}" {} {}'.format(url, " ".join(args), target))
+        self.run(f'clone "{url}" {" ".join(args)} {target}')
 
     def fetch_commit(self, url, commit):
         """
@@ -175,7 +170,7 @@ class Git(object):
         self.run('init')
         self.run(f'remote add origin "{url}"')
         self.run(f'fetch --depth 1 origin {commit}')
-        self.run(f'checkout FETCH_HEAD')
+        self.run('checkout FETCH_HEAD')
 
     def checkout(self, commit):
         """
@@ -183,8 +178,8 @@ class Git(object):
 
         :param commit: Commit to checkout.
         """
-        self._conanfile.output.info("Checkout: {}".format(commit))
-        self.run('checkout {}'.format(commit))
+        self._conanfile.output.info(f"Checkout: {commit}")
+        self.run(f'checkout {commit}')
 
     def included_files(self):
         """

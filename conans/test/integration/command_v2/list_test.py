@@ -88,7 +88,7 @@ class TestListRefs:
         r_msg = "default" if remote else "Local Cache"
         client.run(f"list {pattern} {r}")
         expected = textwrap.indent(expected, "  ")
-        expected_output = f"{r_msg}\n" + expected
+        expected_output = f"{r_msg}\n{expected}"
         expected_output = re.sub(r"\(.*\)", "", expected_output)
         output = re.sub(r"\(.*\)", "", str(client.out))
         assert expected_output == output
@@ -261,7 +261,7 @@ class TestListPrefs:
         r_msg = "default" if remote else "Local Cache"
         client.run(f"list {pattern} {r}")
         expected = textwrap.indent(expected, "  ")
-        expected_output = f"{r_msg}\n" + expected
+        expected_output = f"{r_msg}\n{expected}"
         expected_output = re.sub(r"\(.*\)", "", expected_output)
         output = re.sub(r"\(.*\)", "", str(client.out))
         assert expected_output == output
@@ -682,7 +682,7 @@ class TestListRemotes:
     ])
     def test_search_remote_errors_but_no_raising_exceptions(self, client, exc, output):
         with patch("conan.api.subapi.search.SearchAPI.recipes", new=Mock(side_effect=exc)):
-            client.run(f'list whatever/1.0 -r="*"')
+            client.run('list whatever/1.0 -r="*"')
         expected_output = textwrap.dedent(f"""\
             default
               {output}

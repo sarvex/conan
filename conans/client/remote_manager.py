@@ -72,9 +72,7 @@ class RemoteManager(object):
             self._cache.remove_recipe_layout(layout)
             raise
         export_folder = layout.export()
-        tgz_file = zipped_files.pop(EXPORT_TGZ_NAME, None)
-
-        if tgz_file:
+        if tgz_file := zipped_files.pop(EXPORT_TGZ_NAME, None):
             uncompress_file(tgz_file, export_folder)
         mkdir(export_folder)
         for file_name, file_path in zipped_files.items():  # copy CONANFILE
@@ -97,8 +95,9 @@ class RemoteManager(object):
         uncompress_file(tgz_file, export_sources_folder)
 
     def get_package(self, conanfile, pref, remote):
-        conanfile.output.info("Retrieving package %s from remote '%s' " % (pref.package_id,
-                                                                           remote.name))
+        conanfile.output.info(
+            f"Retrieving package {pref.package_id} from remote '{remote.name}' "
+        )
 
         assert pref.revision is not None
 
@@ -128,14 +127,14 @@ class RemoteManager(object):
             for file_name, file_path in zipped_files.items():  # copy CONANINFO and CONANMANIFEST
                 shutil.move(file_path, os.path.join(package_folder, file_name))
 
-            scoped_output.success('Package installed %s' % pref.package_id)
-            scoped_output.info("Downloaded package revision %s" % pref.revision)
+            scoped_output.success(f'Package installed {pref.package_id}')
+            scoped_output.info(f"Downloaded package revision {pref.revision}")
         except NotFoundException:
             raise PackageNotFoundException(pref)
         except BaseException as e:  # So KeyboardInterrupt also cleans things
             self._cache.remove_package_layout(layout)
-            scoped_output.error("Exception while getting package: %s" % str(pref.package_id))
-            scoped_output.error("Exception: %s %s" % (type(e), str(e)))
+            scoped_output.error(f"Exception while getting package: {str(pref.package_id)}")
+            scoped_output.error(f"Exception: {type(e)} {str(e)}")
             raise
 
     def search_recipes(self, remote, pattern):
@@ -179,12 +178,13 @@ class RemoteManager(object):
         headers = None
         if info:
             headers = {}
-            settings = [f'{k}={v}' for k, v in info.settings.items()]
-            if settings:
+            if settings := [f'{k}={v}' for k, v in info.settings.items()]:
                 headers['Conan-PkgID-Settings'] = ';'.join(settings)
-            options = [f'{k}={v}' for k, v in info.options.serialize().items()
-                       if k in ("shared", "fPIC", "header_only")]
-            if options:
+            if options := [
+                f'{k}={v}'
+                for k, v in info.options.serialize().items()
+                if k in ("shared", "fPIC", "header_only")
+            ]:
                 headers['Conan-PkgID-Options'] = ';'.join(options)
         return self._call_remote(remote, "get_latest_package_reference", pref, headers=headers)
 
@@ -200,7 +200,7 @@ class RemoteManager(object):
         assert (isinstance(remote, Remote))
         enforce_disabled = kwargs.pop("enforce_disabled", True)
         if remote.disabled and enforce_disabled:
-            raise ConanException("Remote '%s' is disabled" % remote.name)
+            raise ConanException(f"Remote '{remote.name}' is disabled")
         try:
             return self._auth_manager.call_rest_api_method(remote, method, *args, **kwargs)
         except ConnectionError as exc:
@@ -218,7 +218,7 @@ class RemoteManager(object):
 
 def uncompress_file(src_path, dest_folder):
     try:
-        ConanOutput().info("Decompressing %s" % os.path.basename(src_path))
+        ConanOutput().info(f"Decompressing {os.path.basename(src_path)}")
         with open(src_path, mode='rb') as file_handler:
             tar_extract(file_handler, dest_folder)
     except Exception as e:

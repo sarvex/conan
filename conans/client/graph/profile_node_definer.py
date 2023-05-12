@@ -36,9 +36,7 @@ def _initialize_conanfile(conanfile, profile, ref):
     # Prepare the settings for the loaded conanfile
     # Mixing the global settings with the specified for that name if exist
     tmp_settings = profile.processed_settings.copy()
-    package_settings_values = profile.package_settings_values
-
-    if package_settings_values:
+    if package_settings_values := profile.package_settings_values:
         pkg_settings = []
 
         for pattern, settings in package_settings_values.items():
@@ -52,8 +50,9 @@ def _initialize_conanfile(conanfile, profile, ref):
     try:
         tmp_settings.constrained(conanfile.settings)
     except Exception as e:
-        raise ConanException("The recipe %s is constraining settings. %s" % (
-            conanfile.display_name, str(e)))
+        raise ConanException(
+            f"The recipe {conanfile.display_name} is constraining settings. {str(e)}"
+        )
     conanfile.settings = tmp_settings
     conanfile.settings._frozen = True
     conanfile._conan_buildenv = profile.buildenv

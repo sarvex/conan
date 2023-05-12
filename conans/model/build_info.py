@@ -463,7 +463,7 @@ class CppInfo(object):
             for dep_name, dep in self.components.items():
                 for require in dep.required_component_names:
                     if require == comp_name:
-                        deps_set.add("   {} requires {}".format(dep_name, comp_name))
+                        deps_set.add(f"   {dep_name} requires {comp_name}")
         dep_mesg = "\n".join(deps_set)
         raise ConanException(f"There is a dependency loop in "
                              f"'self.cpp_info.components' requires:\n{dep_mesg}")
@@ -538,8 +538,7 @@ class CppInfo(object):
             external.update(r.split("::")[0] for r in comp.requires if "::" in r)
             internal.update(r for r in comp.requires if "::" not in r)
 
-        missing_internal = list(internal.difference(self.components))
-        if missing_internal:
+        if missing_internal := list(internal.difference(self.components)):
             raise ConanException(f"{conanfile}: Internal components not found: {missing_internal}")
         if not external:
             return
@@ -569,15 +568,13 @@ class CppInfo(object):
             for r in comp.requires:
                 if r not in ret:
                     ret.append(r)
-        # Then split the names
-        ret = [r.split("::") if "::" in r else (None, r) for r in ret]
-        return ret
+        return [r.split("::") if "::" in r else (None, r) for r in ret]
 
     def __str__(self):
         ret = []
         for cname, c in self.components.items():
-            for n in _ALL_NAMES:
-                ret.append("Component: '{}' "
-                           "Var: '{}' "
-                           "Value: '{}'".format(cname, n, getattr(c, n)))
+            ret.extend(
+                f"Component: '{cname}' Var: '{n}' Value: '{getattr(c, n)}'"
+                for n in _ALL_NAMES
+            )
         return "\n".join(ret)

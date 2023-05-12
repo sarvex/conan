@@ -43,7 +43,7 @@ def upload(conan_api: ConanAPI, parser, *args):
     package_list = conan_api.list.select(ref_pattern, package_query=args.package_query)
 
     if not package_list.recipes:
-        raise ConanException("No recipes found matching pattern '{}'".format(args.reference))
+        raise ConanException(f"No recipes found matching pattern '{args.reference}'")
 
     if args.check:
         conan_api.cache.check_integrity(package_list)
@@ -63,7 +63,7 @@ def upload(conan_api: ConanAPI, parser, *args):
 def _ask_confirm_upload(conan_api, upload_data):
     ui = UserInput(conan_api.config.get("core:non_interactive"))
     for ref, bundle in upload_data.refs():
-        msg = "Are you sure you want to upload recipe '%s'?" % ref.repr_notime()
+        msg = f"Are you sure you want to upload recipe '{ref.repr_notime()}'?"
         if not ui.request_boolean(msg):
             bundle["upload"] = False
             for _, prev_bundle in upload_data.prefs(ref, bundle):
@@ -71,6 +71,6 @@ def _ask_confirm_upload(conan_api, upload_data):
 
         else:
             for pref, prev_bundle in upload_data.prefs(ref, bundle):
-                msg = "Are you sure you want to upload package '%s'?" % pref.repr_notime()
+                msg = f"Are you sure you want to upload package '{pref.repr_notime()}'?"
                 if not ui.request_boolean(msg):
                     prev_bundle["upload"] = False

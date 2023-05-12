@@ -29,9 +29,12 @@ class RecipesDBTable(BaseDbTable):
             self.columns.reference: str(ref),
             self.columns.rrev: ref.revision,
         }
-        where_expr = ' AND '.join(
-            [f'{k}="{v}" ' if v is not None else f'{k} IS NULL' for k, v in where_dict.items()])
-        return where_expr
+        return ' AND '.join(
+            [
+                f'{k}="{v}" ' if v is not None else f'{k} IS NULL'
+                for k, v in where_dict.items()
+            ]
+        )
 
     def _set_clause(self, ref: RecipeReference, path=None):
         set_dict = {
@@ -40,8 +43,9 @@ class RecipesDBTable(BaseDbTable):
             self.columns.path: path,
             self.columns.timestamp: ref.timestamp,
         }
-        set_expr = ', '.join([f'{k} = "{v}"' for k, v in set_dict.items() if v is not None])
-        return set_expr
+        return ', '.join(
+            [f'{k} = "{v}"' for k, v in set_dict.items() if v is not None]
+        )
 
     def get(self, ref: RecipeReference):
         """ Returns the row matching the reference or fails """

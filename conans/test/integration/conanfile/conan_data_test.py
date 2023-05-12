@@ -81,7 +81,7 @@ sources:
         self.assertTrue(os.path.exists(os.path.join(export_folder, "conandata.yml")))
 
         # Transitive loaded?
-        client.save({"conanfile.txt": "[requires]\n{}".format(ref)}, clean_first=True)
+        client.save({"conanfile.txt": f"[requires]\n{ref}"}, clean_first=True)
         client.run("install . ")
         self.assertIn("My URL:", client.out)
         client.run("install . --build='*'")

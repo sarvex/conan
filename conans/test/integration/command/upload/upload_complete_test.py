@@ -50,19 +50,19 @@ def test_try_upload_bad_recipe():
     ref = RecipeReference.loads("hello0/1.2.1@frodo/stable")
     latest_rrev = client.cache.get_latest_recipe_reference(ref)
     os.unlink(os.path.join(client.cache.ref_layout(latest_rrev).export(), CONAN_MANIFEST))
-    client.run("upload %s -r default" % str(ref), assert_error=True)
+    client.run(f"upload {str(ref)} -r default", assert_error=True)
     assert "Cannot upload corrupted recipe" in client.out
 
 
 def test_upload_with_pattern():
     client = TestClient(default_server_user=True)
     for num in range(3):
-        client.save({"conanfile.py": GenConanfile("hello{}".format(num), "1.2.1")})
+        client.save({"conanfile.py": GenConanfile(f"hello{num}", "1.2.1")})
         client.run("export . --user=frodo --channel=stable")
 
     client.run("upload hello* --confirm -r default")
     for num in range(3):
-        assert "Uploading recipe 'hello%s/1.2.1@frodo/stable" % num in client.out
+        assert f"Uploading recipe 'hello{num}/1.2.1@frodo/stable" in client.out
 
     client.run("upload hello0* --confirm -r default")
     assert f"'hello0/1.2.1@frodo/stable#761f54e34d59deb172d6078add7050a7' "\
@@ -90,14 +90,13 @@ def test_check_upload_confirm_question():
 class UploadTest(unittest.TestCase):
 
     def _get_client(self, requester=None):
-        servers = {}
         # All can write (for avoid authentication until we mock user_io)
         self.test_server = TestServer([("*/*@*/*", "*")], [("*/*@*/*", "*")],
                                       users={"lasote": "mypass"})
-        servers["default"] = self.test_server
-        test_client = TestClient(servers=servers, inputs=["lasote", "mypass"],
-                                 requester_class=requester)
-        return test_client
+        servers = {"default": self.test_server}
+        return TestClient(
+            servers=servers, inputs=["lasote", "mypass"], requester_class=requester
+        )
 
     def test_upload_error(self):
         """Cause an error in the transfer and see some message"""
@@ -157,9 +156,9 @@ class UploadTest(unittest.TestCase):
     def _set_global_conf(self, client, retry=None, retry_wait=None):
         lines = []
         if retry is not None:
-            lines.append("core.upload:retry={}".format(retry) )
+            lines.append(f"core.upload:retry={retry}")
         if retry_wait is not None:
-            lines.append("core.upload:retry_wait={}".format(retry_wait))
+            lines.append(f"core.upload:retry_wait={retry_wait}")
 
         client.save({"global.conf": "\n".join(lines)}, path=client.cache.cache_folder)
 

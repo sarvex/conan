@@ -40,15 +40,19 @@ class Pkg(ConanFile):
         client.run("upload * --confirm -r default")
         client.run("remove * -c")
 
-        client.run("download pkg/1.0:{} -r default".format(NO_SETTINGS_PACKAGE_ID))
-        self.assertIn("Downloading package 'pkg/1.0#4d670581ccb765839f2239cc8dff8fbd:%s" %
-                      NO_SETTINGS_PACKAGE_ID, client.out)
+        client.run(f"download pkg/1.0:{NO_SETTINGS_PACKAGE_ID} -r default")
+        self.assertIn(
+            f"Downloading package 'pkg/1.0#4d670581ccb765839f2239cc8dff8fbd:{NO_SETTINGS_PACKAGE_ID}",
+            client.out,
+        )
 
         # All
         client.run("remove * -c")
         client.run("download pkg/1.0#*:* -r default")
-        self.assertIn("Downloading package 'pkg/1.0#4d670581ccb765839f2239cc8dff8fbd:%s" %
-                      NO_SETTINGS_PACKAGE_ID, client.out)
+        self.assertIn(
+            f"Downloading package 'pkg/1.0#4d670581ccb765839f2239cc8dff8fbd:{NO_SETTINGS_PACKAGE_ID}",
+            client.out,
+        )
 
     def test_download_with_python_requires(self):
         """ when having a python_require in a different repo, it cannot be ``conan download``

@@ -51,11 +51,13 @@ class UploadTest(unittest.TestCase):
         self.assertIn(f"ERROR: hello/0.1@lasote/testing:{NO_SETTINGS_PACKAGE_ID}: "
                       "Upload package to 'default' failed: Package %s is corrupted, aborting upload"
                       % str(prev), client.out)
-        self.assertIn("Remove it with 'conan remove hello/0.1@lasote/testing -p=%s'"
-                      % NO_SETTINGS_PACKAGE_ID, client.out)
+        self.assertIn(
+            f"Remove it with 'conan remove hello/0.1@lasote/testing -p={NO_SETTINGS_PACKAGE_ID}'",
+            client.out,
+        )
 
         # TODO: cache2.0 check if this makes sense for 2.0, xfail test for the moment
-        client.run("remove hello/0.1@lasote/testing -p=%s -c" % NO_SETTINGS_PACKAGE_ID)
+        client.run(f"remove hello/0.1@lasote/testing -p={NO_SETTINGS_PACKAGE_ID} -c")
         client.run("upload * --confirm")
 
     @pytest.mark.artifactory_ready
@@ -74,7 +76,7 @@ class UploadTest(unittest.TestCase):
         if platform.system() == "Linux":
             client.run("remove '*' -c")
             client.create(ref, conanfile=GenConanfile().with_package_file("myfile.sh", "foo"))
-            os.system('chmod +x "{}"'.format(package_file_path))
+            os.system(f'chmod +x "{package_file_path}"')
             self.assertTrue(os.stat(package_file_path).st_mode & stat.S_IXUSR)
             client.run("upload * --confirm -r default")
             # Doesn't change revision, doesn't reupload
@@ -89,7 +91,7 @@ class UploadTest(unittest.TestCase):
 
         if platform.system() == "Linux":
             client.run("remove '*' -c")
-            client.run("install --requires={}".format(ref))
+            client.run(f"install --requires={ref}")
             # Owner with execute permissions
             self.assertTrue(os.stat(package_file_path).st_mode & stat.S_IXUSR)
 
@@ -123,7 +125,9 @@ class UploadTest(unittest.TestCase):
 
         for _os, arch in itertools.product(["Macos", "Linux", "Windows"],
                                            ["armv8", "x86_64"]):
-            client.run("create . --user=user --channel=testing -s os=%s -s arch=%s" % (_os, arch))
+            client.run(
+                f"create . --user=user --channel=testing -s os={_os} -s arch={arch}"
+            )
 
         # Check that the right number of packages are picked up by the queries
         client.run("upload hello1/*@user/testing --confirm -q 'os=Windows or os=Macos' -r default")
@@ -156,7 +160,8 @@ class UploadTest(unittest.TestCase):
         ref = RecipeReference.loads("hello0/1.2.1@user/testing")
 
         def gzopen_patched(name, mode="r", fileobj=None, **kwargs):
-            raise ConanException("Error gzopen %s" % name)
+            raise ConanException(f"Error gzopen {name}")
+
         with patch('conans.client.cmd.uploader.gzopen_without_timestamps', new=gzopen_patched):
             client.run("upload * --confirm -r default --only-recipe",
                        assert_error=True)
@@ -186,8 +191,9 @@ class UploadTest(unittest.TestCase):
 
         def gzopen_patched(name, mode="r", fileobj=None, **kwargs):
             if name == PACKAGE_TGZ_NAME:
-                raise ConanException("Error gzopen %s" % name)
+                raise ConanException(f"Error gzopen {name}")
             return gzopen_without_timestamps(name, mode, fileobj, **kwargs)
+
         with patch('conans.client.cmd.uploader.gzopen_without_timestamps', new=gzopen_patched):
             client.run("upload * --confirm -r default", assert_error=True)
             self.assertIn("Error gzopen conan_package.tgz", client.out)
@@ -274,8 +280,10 @@ class UploadTest(unittest.TestCase):
         manifest.save(client2.cache.ref_layout(rrev2).export())
         client2.run("upload hello0/1.2.1@frodo/stable -r default")
         self.assertNotIn("-> conanmanifest.txt", client2.out)
-        self.assertIn(f"Recipe 'hello0/1.2.1@frodo/stable#761f54e34d59deb172d6078add7050a7' already "
-                      "in server, skipping upload", client2.out)
+        self.assertIn(
+            "Recipe 'hello0/1.2.1@frodo/stable#761f54e34d59deb172d6078add7050a7' already in server, skipping upload",
+            client2.out,
+        )
 
         # first client tries to upload again
         client.run("upload hello0/1.2.1@frodo/stable -r default")
@@ -487,8 +495,10 @@ class UploadTest(unittest.TestCase):
         client.run("new hello/1.0 --header")
         client.run("export-pkg . user/testing -pf release")
         client.run("upload hello/1.0@user/testing -r server1")
-        self.assertNotIn("Binary package hello/1.0@user/testing:5%s not found" %
-                         NO_SETTINGS_PACKAGE_ID, client.out)
+        self.assertNotIn(
+            f"Binary package hello/1.0@user/testing:5{NO_SETTINGS_PACKAGE_ID} not found",
+            client.out,
+        )
         ref = RecipeReference("hello", "1.0", "user", "testing")
         # FIXME: 2.0: load_metadata() method does not exist anymore
         metadata = client.get_latest_pkg_layout(pref).load_metadata()
@@ -521,12 +531,14 @@ class UploadTest(unittest.TestCase):
         client.save({"conanfile.py": GenConanfile()})
 
         client.run('create . --name=lib --version=1.0')
-        self.assertIn("lib/1.0: Package '{}' created".format(NO_SETTINGS_PACKAGE_ID), client.out)
+        self.assertIn(
+            f"lib/1.0: Package '{NO_SETTINGS_PACKAGE_ID}' created", client.out
+        )
         client.run('upload lib/1.0 -c -r default')
         assert "Uploading recipe 'lib/1.0" in client.out
 
         # Verify that in the remote it is stored as "_"
-        pref = PkgReference.loads("lib/1.0@#0:{}#0".format(NO_SETTINGS_PACKAGE_ID))
+        pref = PkgReference.loads(f"lib/1.0@#0:{NO_SETTINGS_PACKAGE_ID}#0")
         path = server.server_store.export(pref.ref)
         self.assertIn("/lib/1.0/_/_/0/export", path.replace("\\", "/"))
 
@@ -556,6 +568,8 @@ class UploadTest(unittest.TestCase):
                 self.status_code = 400
                 self.content = "Unsupported Conan v1 repository request for 'conan'"
 
+
+
         class ServerCapabilitiesRequester(TestRequester):
             def __init__(self, *args, **kwargs):
                 self._first_ping = True
@@ -563,17 +577,18 @@ class UploadTest(unittest.TestCase):
 
             def get(self, url, **kwargs):
                 app, url = self._prepare_call(url, kwargs)
-                if app:
-                    if url.endswith("ping") and self._first_ping:
-                        self._first_ping = False
-                        return EmptyCapabilitiesResponse()
-                    elif "hello0" in url and "1.2.1" in url and "v1" in url:
-                        return ErrorApiResponse()
-                    else:
-                        response = app.get(url, **kwargs)
-                        return TestingResponse(response)
-                else:
+                if not app:
                     return requests.get(url, **kwargs)
+
+                if url.endswith("ping") and self._first_ping:
+                    self._first_ping = False
+                    return EmptyCapabilitiesResponse()
+                elif "hello0" in url and "1.2.1" in url and "v1" in url:
+                    return ErrorApiResponse()
+                else:
+                    response = app.get(url, **kwargs)
+                    return TestingResponse(response)
+
 
         server = TestServer(users={"user": "password"}, write_permissions=[("*/*@*/*", "*")],
                             server_capabilities=[REVISIONS])
@@ -593,10 +608,12 @@ class UploadTest(unittest.TestCase):
         client = TurboTestClient(default_server_user=True)
         pref = client.create(ref, conanfile=GenConanfile())
         client.run("upload pkg/1.0@user/channel#fakerevision --confirm", assert_error=True)
-        self.assertIn("ERROR: Recipe revision fakerevision does not match the one stored in "
-                      "the cache {}".format(pref.ref.revision), client.out)
+        self.assertIn(
+            f"ERROR: Recipe revision fakerevision does not match the one stored in the cache {pref.ref.revision}",
+            client.out,
+        )
 
-        client.run("upload pkg/1.0@user/channel#{} --confirm".format(pref.ref.revision))
+        client.run(f"upload pkg/1.0@user/channel#{pref.ref.revision} --confirm")
         search_result = client.search("pkg/1.0@user/channel --revisions -r default")[0]
         self.assertIn(pref.ref.revision, search_result["revision"])
 
@@ -605,24 +622,23 @@ class UploadTest(unittest.TestCase):
         ref = RecipeReference.loads("pkg/1.0@user/channel")
         client = TurboTestClient(default_server_user=True)
         pref = client.create(ref, conanfile=GenConanfile())
-        client.run("upload pkg/1.0@user/channel#{}:{}#fakeprev --confirm".format(pref.ref.revision,
-                                                                                 pref.package_id),
-                   assert_error=True)
+        client.run(
+            f"upload pkg/1.0@user/channel#{pref.ref.revision}:{pref.package_id}#fakeprev --confirm",
+            assert_error=True,
+        )
         self.assertIn(
-            "ERROR: Binary package pkg/1.0@user/channel:{}"
-            "#fakeprev not found".format(pref.package_id),
-            client.out)
+            f"ERROR: Binary package pkg/1.0@user/channel:{pref.package_id}#fakeprev not found",
+            client.out,
+        )
 
         client.run(
-            "upload pkg/1.0@user/channel#{}:{}#{} --confirm".format(pref.ref.revision,
-                                                                    pref.package_id,
-                                                                    pref.revision))
+            f"upload pkg/1.0@user/channel#{pref.ref.revision}:{pref.package_id}#{pref.revision} --confirm"
+        )
         search_result = client.search("pkg/1.0@user/channel --revisions -r default")[0]
         self.assertIn(pref.ref.revision, search_result["revision"])
         search_result = client.search(
-            "pkg/1.0@user/channel#{}:{} --revisions  -r default".format(pref.ref.revision,
-                                                                        pref.package_id))[
-            0]
+            f"pkg/1.0@user/channel#{pref.ref.revision}:{pref.package_id} --revisions  -r default"
+        )[0]
         self.assertIn(pref.revision, search_result["revision"])
 
 

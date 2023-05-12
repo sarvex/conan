@@ -52,7 +52,7 @@ class UploadAPI:
         url = config.get("core.sources:upload_url")
         if url is None:
             return
-        url = url if url.endswith("/") else url + "/"
+        url = url if url.endswith("/") else f"{url}/"
         download_cache_path = config.get("core.sources:download_cache")
         download_cache_path = download_cache_path or app.cache.default_sources_backup_folder
 

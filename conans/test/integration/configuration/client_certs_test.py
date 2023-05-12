@@ -29,9 +29,9 @@ class MyHttpRequester(TestRequester):
         resp.status_code = 200
         resp._content = b''
         # This will be captured in the TestClient.out too
-        print("KWARGS auth: {}".format(kwargs["auth"]))
-        print("KWARGS verify: {}".format(kwargs["verify"]))
-        print("KWARGS cert: {}".format(kwargs["cert"]))
+        print(f'KWARGS auth: {kwargs["auth"]}')
+        print(f'KWARGS verify: {kwargs["verify"]}')
+        print(f'KWARGS cert: {kwargs["cert"]}')
         return resp
 
 
@@ -51,4 +51,4 @@ class ClientCertsTest(unittest.TestCase):
         client.save({"global.conf": conan_conf}, path=client.cache.cache_folder)
         client.save({"conanfile.py": conanfile})
         client.run("create . --name=foo --version=1.0")
-        assert "KWARGS cert: ('{}', '{}')".format(mycert_path, mykey_path) in client.out
+        assert f"KWARGS cert: ('{mycert_path}', '{mykey_path}')" in client.out

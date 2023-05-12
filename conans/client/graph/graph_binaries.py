@@ -56,7 +56,7 @@ class GraphBinariesAnalyzer(object):
                 info = node.conanfile.info
                 latest_pref = self._remote_manager.get_latest_package_reference(pref, r, info)
                 results.append({'pref': latest_pref, 'remote': r})
-                if len(results) > 0 and not self._update:
+                if results and not self._update:
                     break
             except NotFoundException:
                 pass
@@ -64,7 +64,7 @@ class GraphBinariesAnalyzer(object):
         if not self._selected_remotes and self._update:
             node.conanfile.output.warning("Can't update, there are no remotes defined")
 
-        if len(results) > 0:
+        if results:
             remotes_results = sorted(results, key=lambda k: k['pref'].timestamp, reverse=True)
             result = remotes_results[0]
             node.prev = result.get("pref").revision
@@ -80,8 +80,7 @@ class GraphBinariesAnalyzer(object):
         exactly the same
         """
         pref = node.pref
-        previous_nodes = self._evaluated.get(pref)
-        if previous_nodes:
+        if previous_nodes := self._evaluated.get(pref):
             previous_nodes.append(node)
             previous_node = previous_nodes[0]
             node.binary = previous_node.binary
@@ -101,8 +100,7 @@ class GraphBinariesAnalyzer(object):
         original_package_id = node.package_id
 
         compatibles = self._compatibility.compatibles(conanfile)
-        existing = compatibles.pop(original_package_id, None)   # Skip main package_id
-        if existing:  # Skip the check if same packge_id
+        if existing := compatibles.pop(original_package_id, None):
             conanfile.output.info(f"Compatible package ID {original_package_id} equal to "
                                   "the default package ID")
 
@@ -115,8 +113,9 @@ class GraphBinariesAnalyzer(object):
             node.binary = None  # Invalidate it
             self._process_compatible_node(node)
             if node.binary in (BINARY_CACHE, BINARY_DOWNLOAD, BINARY_UPDATE):
-                conanfile.output.info("Main binary package '%s' missing. Using "
-                                      "compatible package '%s'" % (original_package_id, package_id))
+                conanfile.output.info(
+                    f"Main binary package '{original_package_id}' missing. Using compatible package '{package_id}'"
+                )
                 # So they are available in package_info() method
                 conanfile.info = compatible_package  # Redefine current
                 conanfile.settings.update_values(compatible_package.settings.values_list)
@@ -163,7 +162,7 @@ class GraphBinariesAnalyzer(object):
         if node.recipe == RECIPE_EDITABLE:
             # TODO: Check what happens when editable is passed an Invalid configuration
             if build_mode.editable or self._evaluate_build(node, build_mode) or \
-                    build_mode.should_build_missing(node.conanfile):
+                        build_mode.should_build_missing(node.conanfile):
                 node.binary = BINARY_EDITABLE_BUILD
             else:
                 node.binary = BINARY_EDITABLE  # TODO: PREV?
@@ -199,9 +198,12 @@ class GraphBinariesAnalyzer(object):
 
         # The INVALID should only prevail if a compatible package, due to removal of
         # settings in package_id() was not found
-        if node.binary in (BINARY_MISSING, BINARY_BUILD):
-            if node.conanfile.info.invalid and node.conanfile.info.invalid[0] == BINARY_INVALID:
-                node.binary = BINARY_INVALID
+        if (
+            node.binary in (BINARY_MISSING, BINARY_BUILD)
+            and node.conanfile.info.invalid
+            and node.conanfile.info.invalid[0] == BINARY_INVALID
+        ):
+            node.binary = BINARY_INVALID
 
     def _process_compatible_node(self, node):
         """ simplified checking of compatible_packages, that should be found existing, but
@@ -291,7 +293,7 @@ class GraphBinariesAnalyzer(object):
             node.binary = BINARY_CACHE
             node.binary_remote = None
             node.prev = cache_latest_prev.revision
-            assert node.prev, "PREV for %s is None" % str(node.pref)
+            assert node.prev, f"PREV for {str(node.pref)} is None"
 
     def _evaluate_package_id(self, node):
         compute_package_id(node, self._cache.new_config)  # TODO: revise compute_package_id()
@@ -320,20 +322,20 @@ class GraphBinariesAnalyzer(object):
         for node in deps_graph.ordered_iterate():
             build_mode = test_mode if node.test_package else main_mode
             if node.recipe in (RECIPE_CONSUMER, RECIPE_VIRTUAL):
-                if node.path is not None and node.path.endswith(".py"):
-                    # For .py we keep evaluating the package_id, validate(), etc
-                    self._evaluate_package_id(node)
-                elif node.path is not None and node.path.endswith(".txt"):
-                    # To support the ``[layout]`` in conanfile.txt
-                    # TODO: Refactorize this a bit, the call to ``layout()``
-                    if hasattr(node.conanfile, "layout"):
-                        with conanfile_exception_formatter(node.conanfile, "layout"):
-                            node.conanfile.layout()
+                if node.path is not None:
+                    if node.path.endswith(".py"):
+                        # For .py we keep evaluating the package_id, validate(), etc
+                        self._evaluate_package_id(node)
+                    elif node.path.endswith(".txt"):
+                        # To support the ``[layout]`` in conanfile.txt
+                        # TODO: Refactorize this a bit, the call to ``layout()``
+                        if hasattr(node.conanfile, "layout"):
+                            with conanfile_exception_formatter(node.conanfile, "layout"):
+                                node.conanfile.layout()
             else:
                 self._evaluate_package_id(node)
                 if lockfile:
-                    locked_prev = lockfile.resolve_prev(node)
-                    if locked_prev:
+                    if locked_prev := lockfile.resolve_prev(node):
                         self._process_locked_node(node, build_mode, locked_prev)
                         continue
                 self._evaluate_node(node, build_mode)
@@ -342,16 +344,15 @@ class GraphBinariesAnalyzer(object):
 
     @staticmethod
     def _skip_binaries(graph):
-        required_nodes = set()
-        required_nodes.add(graph.root)
+        required_nodes = {graph.root}
         for node in graph.nodes:
             if node.binary not in (BINARY_BUILD, BINARY_EDITABLE_BUILD, BINARY_EDITABLE) \
-                    and node is not graph.root:
+                        and node is not graph.root:
                 continue
             for req, dep in node.transitive_deps.items():
-                dep_node = dep.node
                 require = dep.require
                 if not require.skip:
+                    dep_node = dep.node
                     required_nodes.add(dep_node)
 
         for node in graph.nodes:

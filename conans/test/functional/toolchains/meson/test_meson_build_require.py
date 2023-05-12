@@ -3,11 +3,18 @@ from conans.test.utils.tools import TestClient
 
 
 def test_env_vars_from_build_require():
-    br = str(GenConanfile().with_name("hello_compiler").with_version("1.0").with_import("import os"))
-    br += """
+    br = (
+        str(
+            GenConanfile()
+            .with_name("hello_compiler")
+            .with_version("1.0")
+            .with_import("import os")
+        )
+        + """
     def package_info(self):
         {}
     """
+    )
     vs = ["CC", "CC_LD", "CXX", "CXX_LD", "AR", "STRIP", "AS", "WINDRES", "PKG_CONFIG", "LD"]
     lines = "\n        ".join(['self.buildenv_info.define("{var}", "{var}_VALUE")'.format(var=var)
                                for var in vs])

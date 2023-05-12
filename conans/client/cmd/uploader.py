@@ -43,11 +43,15 @@ class UploadUpstreamChecker:
             ref_bundle["upload"] = True
         else:
             if force:
-                self._output.info("Recipe '{}' already in server, forcing upload".format(ref.repr_notime()))
+                self._output.info(
+                    f"Recipe '{ref.repr_notime()}' already in server, forcing upload"
+                )
                 ref_bundle["force_upload"] = True
                 ref_bundle["upload"] = True
             else:
-                self._output.info("Recipe '{}' already in server, skipping upload".format(ref.repr_notime()))
+                self._output.info(
+                    f"Recipe '{ref.repr_notime()}' already in server, skipping upload"
+                )
                 ref_bundle["upload"] = False
                 ref_bundle["force_upload"] = False
 
@@ -64,11 +68,15 @@ class UploadUpstreamChecker:
             prev_bundle["upload"] = True
         else:
             if force:
-                self._output.info("Package '{}' already in server, forcing upload".format(pref.repr_notime()))
+                self._output.info(
+                    f"Package '{pref.repr_notime()}' already in server, forcing upload"
+                )
                 prev_bundle["force_upload"] = True
                 prev_bundle["upload"] = True
             else:
-                self._output.info("Package '{}' already in server, skipping upload".format(pref.repr_notime()))
+                self._output.info(
+                    f"Package '{pref.repr_notime()}' already in server, skipping upload"
+                )
                 prev_bundle["force_upload"] = False
                 prev_bundle["upload"] = False
 
@@ -111,7 +119,7 @@ class PackagePreparator:
         for f in (EXPORT_TGZ_NAME, EXPORT_SOURCES_TGZ_NAME):
             tgz_path = os.path.join(download_export_folder, f)
             if is_dirty(tgz_path):
-                self._output.warning("%s: Removing %s, marked as dirty" % (str(ref), f))
+                self._output.warning(f"{str(ref)}: Removing {f}, marked as dirty")
                 os.remove(tgz_path)
                 clean_dirty(tgz_path)
 
@@ -119,7 +127,7 @@ class PackagePreparator:
         files, symlinked_folders = gather_files(export_folder)
         files.update(symlinked_folders)
         if CONANFILE not in files or CONAN_MANIFEST not in files:
-            raise ConanException("Cannot upload corrupted recipe '%s'" % str(ref))
+            raise ConanException(f"Cannot upload corrupted recipe '{str(ref)}'")
         export_src_folder = layout.export_sources()
         src_files, src_symlinked_folders = gather_files(export_src_folder)
         src_files.update(src_symlinked_folders)
@@ -168,7 +176,9 @@ class PackagePreparator:
         download_pkg_folder = layout.download_package()
         package_tgz = os.path.join(download_pkg_folder, PACKAGE_TGZ_NAME)
         if is_dirty(package_tgz):
-            self._output.warning("%s: Removing %s, marked as dirty" % (str(pref), PACKAGE_TGZ_NAME))
+            self._output.warning(
+                f"{str(pref)}: Removing {PACKAGE_TGZ_NAME}, marked as dirty"
+            )
             os.remove(package_tgz)
             clean_dirty(package_tgz)
 
@@ -179,7 +189,7 @@ class PackagePreparator:
         files.update(symlinked_folders)
 
         if CONANINFO not in files or CONAN_MANIFEST not in files:
-            raise ConanException("Cannot upload corrupted package '%s'" % str(pref))
+            raise ConanException(f"Cannot upload corrupted package '{str(pref)}'")
 
         # Do a copy so the location of CONANINFO and MANIFEST is the "download" folder one
         mkdir(download_pkg_folder)
@@ -194,7 +204,7 @@ class PackagePreparator:
         if not os.path.isfile(package_tgz):
             if self._output and not self._output.is_terminal:
                 self._output.info("Compressing package...")
-            tgz_files = {f: path for f, path in files.items()}
+            tgz_files = dict(files.items())
             compresslevel = self._app.cache.new_config.get("core.gzip:compresslevel", check_type=int)
             tgz_path = compress_files(tgz_files, PACKAGE_TGZ_NAME, download_pkg_folder,
                                       compresslevel=compresslevel)

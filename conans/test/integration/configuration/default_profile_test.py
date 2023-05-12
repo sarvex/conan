@@ -22,8 +22,10 @@ class DefaultProfileTest(unittest.TestCase):
 
         client.save({CONANFILE: conanfile})
         client.run("create . --name=pkg --version=0.1 --user=lasote --channel=stable")
-        self.assertIn("pkg/0.1@lasote/stable: Package '%s' created" % NO_SETTINGS_PACKAGE_ID,
-                      client.out)
+        self.assertIn(
+            f"pkg/0.1@lasote/stable: Package '{NO_SETTINGS_PACKAGE_ID}' created",
+            client.out,
+        )
 
         client.save({"conanfile.txt": "[requires]\npkg/0.1@lasote/stable"}, clean_first=True)
         client.run('install .')
@@ -48,7 +50,10 @@ class MyConanfile(ConanFile):
         default_profile_path = os.path.join(tmp, "myprofile")
         save(default_profile_path, "[buildenv]\nValue1=A")
         client = TestClient()
-        save(client.cache.new_config_path, "core:default_profile={}".format(default_profile_path))
+        save(
+            client.cache.new_config_path,
+            f"core:default_profile={default_profile_path}",
+        )
 
         client.save({CONANFILE: br})
         client.run("export . --user=lasote --channel=stable")
@@ -166,7 +171,7 @@ class MyConanfile(ConanFile):
         env_variable = "env_variable=profile_default"
         save(client.cache.default_profile_path, "[settings]\nos=Windows\n[buildenv]\n" + env_variable)
         client.run("create . --name=name --version=version --user=user --channel=channel")
-        self.assertIn(">>> " + env_variable, client.out)
+        self.assertIn(f">>> {env_variable}", client.out)
 
         # Test with a profile set using and environment variable
         tmp = temp_folder()
@@ -175,7 +180,7 @@ class MyConanfile(ConanFile):
         save(default_profile_path, "[settings]\nos=Windows\n[buildenv]\n" + env_variable)
         with environment_update({'CONAN_DEFAULT_PROFILE': default_profile_path}):
             client.run("create . --name=name --version=version --user=user --channel=channel")
-            self.assertIn(">>> " + env_variable, client.out)
+            self.assertIn(f">>> {env_variable}", client.out)
 
         # Use relative path defined in environment variable
         env_variable = "env_variable=relative_profile"
@@ -186,7 +191,7 @@ class MyConanfile(ConanFile):
         save(default_profile_path, "[settings]\nos=Windows\n[buildenv]\n" + env_variable)
         with environment_update({'CONAN_DEFAULT_PROFILE': rel_path}):
             client.run("create . --name=name --version=version --user=user --channel=channel")
-            self.assertIn(">>> " + env_variable, client.out)
+            self.assertIn(f">>> {env_variable}", client.out)
 
         # Use non existing path
         profile_path = os.path.join(tmp, "this", "is", "a", "path")

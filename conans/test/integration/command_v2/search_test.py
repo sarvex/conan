@@ -74,7 +74,7 @@ class TestRemotes:
         self.client.save({'conanfile.py': conanfile})
         reference = RecipeReference.loads(str(reference))
         self.client.run(f"export . --name={reference.name} --version={reference.version} --user={reference.user} --channel={reference.channel}")
-        self.client.run("upload --force -r {} {}".format(remote, reference))
+        self.client.run(f"upload --force -r {remote} {reference}")
 
     @pytest.mark.parametrize("exc,output", [
         (ConanConnectionError("Review your network!"),
@@ -105,13 +105,9 @@ class TestRemotes:
         self._add_remote(remote_name)
         self._add_recipe(remote_name, recipe_name)
 
-        self.client.run("search -r {} {}".format(remote_name, "test_recipe"))
+        self.client.run(f"search -r {remote_name} test_recipe")
 
-        expected_output = (
-            "remote1\n"
-            "  test_recipe\n"
-            "    {}\n".format(recipe_name)
-        )
+        expected_output = f"remote1\n  test_recipe\n    {recipe_name}\n"
 
         assert expected_output == self.client.out
 

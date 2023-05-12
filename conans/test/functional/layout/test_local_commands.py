@@ -14,13 +14,15 @@ def test_local_static_generators_folder():
       - If belong to old generators or txt: remains in the install folder
     """
     client = TestClient()
-    conan_file = str(GenConanfile().with_settings("build_type"))
-    conan_file += """
+    conan_file = (
+        str(GenConanfile().with_settings("build_type"))
+        + """
     generators = "CMakeToolchain"
     def layout(self):
         self.folders.build = "build-{}".format(self.settings.build_type)
         self.folders.generators = "{}/generators".format(self.folders.build)
     """
+    )
     client.save({"conanfile.py": conan_file})
     client.run("install . -of=my_install")
 
@@ -93,8 +95,9 @@ def test_local_build():
     go to the specified folder: "my_build"
     """
     client = TestClient()
-    conan_file = str(GenConanfile().with_import("from conan.tools.files import save"))
-    conan_file += """
+    conan_file = (
+        str(GenConanfile().with_import("from conan.tools.files import save"))
+        + """
     def layout(self):
         self.folders.generators = "my_generators"
         self.folders.build = "my_build"
@@ -102,6 +105,7 @@ def test_local_build():
         self.output.warning("Generators folder: {}".format(self.folders.generators_folder))
         save(self, "build_file.dll", "bar")
 """
+    )
     client.save({"conanfile.py": conan_file})
     client.run("build . --output-folder=my_install")
     dll = os.path.join(client.current_folder, "my_install", "my_build", "build_file.dll")
@@ -113,13 +117,15 @@ def test_local_build_change_base():
     go to the specified folder: "my_build under the modified base one "common"
     """
     client = TestClient()
-    conan_file = str(GenConanfile().with_import("from conan.tools.files import save"))
-    conan_file += """
+    conan_file = (
+        str(GenConanfile().with_import("from conan.tools.files import save"))
+        + """
     def layout(self):
         self.folders.build = "my_build"
     def build(self):
         save(self, "build_file.dll", "bar")
     """
+    )
     client.save({"conanfile.py": conan_file})
     client.run("install . --output-folder=common")
     client.run("build . --output-folder=common")
@@ -131,13 +137,15 @@ def test_local_source():
     """The "conan source" is NOT affected by the --output-folder
     """
     client = TestClient()
-    conan_file = str(GenConanfile().with_import("from conan.tools.files import save"))
-    conan_file += """
+    conan_file = (
+        str(GenConanfile().with_import("from conan.tools.files import save"))
+        + """
     def layout(self):
         self.folders.source = "my_source"
     def source(self):
         save(self, "downloaded.h", "bar")
     """
+    )
     client.save({"conanfile.py": conan_file})
     client.run("install . -of=my_install")
     client.run("source .")
@@ -266,5 +274,11 @@ def test_local_folders_without_layout():
 
     client.save({"conanfile.py": conan_file})
     client.run("install .")
-    assert "conanfile.py (test/1.2.3): generate sf: {}".format(client.current_folder) in client.out
-    assert "conanfile.py (test/1.2.3): generate bf: {}".format(client.current_folder) in client.out
+    assert (
+        f"conanfile.py (test/1.2.3): generate sf: {client.current_folder}"
+        in client.out
+    )
+    assert (
+        f"conanfile.py (test/1.2.3): generate bf: {client.current_folder}"
+        in client.out
+    )

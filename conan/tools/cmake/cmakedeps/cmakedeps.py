@@ -60,10 +60,9 @@ class CMakeDeps(object):
         for common_name in common_names:
             suffix = self.build_context_suffix.get(common_name)
             if not suffix:
-                raise ConanException("The package '{}' exists both as 'require' and as "
-                                     "'build require'. You need to specify a suffix using the "
-                                     "'build_context_suffix' attribute at the CMakeDeps "
-                                     "generator.".format(common_name))
+                raise ConanException(
+                    f"The package '{common_name}' exists both as 'require' and as 'build require'. You need to specify a suffix using the 'build_context_suffix' attribute at the CMakeDeps generator."
+                )
 
         # Iterate all the transitive requires
         for require, dep in list(host_req.items()) + list(build_req.items()) + list(test_req.items()):
@@ -159,6 +158,4 @@ class CMakeDeps(object):
         :return: "none" or "config" or "module" or "both" or "config" when not set
         """
         tmp = self.get_property("cmake_find_mode", dep)
-        if tmp is None:
-            return "config"
-        return tmp.lower()
+        return "config" if tmp is None else tmp.lower()

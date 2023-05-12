@@ -83,18 +83,17 @@ def _format_conanfile_exception(scope, method, exception):
         while True:  # If out of index will raise and will be captured later
             # 40 levels of nested functions max, get the latest
             filepath, line, name, contents = traceback.extract_tb(tb, 40)[index]
-            if "conanfile.py" not in filepath:  # Avoid show trace from internal conan source code
-                if conanfile_reached:  # The error goes to internal code, exit print
-                    break
-            else:
+            if "conanfile.py" in filepath:
                 if not conanfile_reached:  # First line
-                    msg = "%s: Error in %s() method" % (scope, method)
+                    msg = f"{scope}: Error in {method}() method"
                     msg += ", line %d\n\t%s" % (line, contents)
                 else:
                     msg = ("while calling '%s', line %d\n\t%s" % (name, line, contents)
                            if line else "\n\t%s" % contents)
                 content_lines.append(msg)
                 conanfile_reached = True
+            elif conanfile_reached:  # The error goes to internal code, exit print
+                break
             index += 1
     except Exception:
         pass
@@ -113,15 +112,13 @@ class ConanException(Exception):
         super(ConanException, self).__init__(*args, **kwargs)
 
     def remote_message(self):
-        if self.remote:
-            return " [Remote: {}]".format(self.remote.name)
-        return ""
+        return f" [Remote: {self.remote.name}]" if self.remote else ""
 
     def __str__(self):
         from conans.util.files import exception_message_safe
         msg = super(ConanException, self).__str__()
         if self.remote:
-            return "{}.{}".format(exception_message_safe(msg), self.remote_message())
+            return f"{exception_message_safe(msg)}.{self.remote_message()}"
 
         return exception_message_safe(msg)
 
@@ -218,7 +215,7 @@ class RecipeNotFoundException(NotFoundException):
 
     def __str__(self):
         tmp = repr(self.ref)
-        return "Recipe not found: '{}'".format(tmp, self.remote_message())
+        return f"Recipe not found: '{tmp}'"
 
 
 class PackageNotFoundException(NotFoundException):
@@ -231,8 +228,7 @@ class PackageNotFoundException(NotFoundException):
         super(PackageNotFoundException, self).__init__(remote=remote)
 
     def __str__(self):
-        return "Binary package not found: '{}'{}".format(self.pref.repr_notime(),
-                                                         self.remote_message())
+        return f"Binary package not found: '{self.pref.repr_notime()}'{self.remote_message()}"
 
 
 class UserInterfaceErrorException(RequestErrorException):

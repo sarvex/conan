@@ -22,7 +22,7 @@ class _Remotes(object):
 
     def rename(self, remote, new_remote_name):
         if self.get_by_name(new_remote_name):
-            raise ConanException("Remote '%s' already exists" % new_remote_name)
+            raise ConanException(f"Remote '{new_remote_name}' already exists")
 
         r = self.get_by_name(remote.name)
         r._name = new_remote_name
@@ -30,10 +30,10 @@ class _Remotes(object):
 
     @property
     def default(self):
-        ret = self._remotes[0]
-        if not ret:
+        if ret := self._remotes[0]:
+            return ret
+        else:
             raise NoRemoteAvailable("No default remote defined")
-        return ret
 
     def remove(self, remote_name):
         r = self.get_by_name(remote_name)
@@ -44,8 +44,7 @@ class _Remotes(object):
 
     def add(self, new_remote: Remote, index=None, force=False):
         assert isinstance(new_remote, Remote)
-        current = self.get_by_name(new_remote.name)
-        if current:  # same name remote existing!
+        if current := self.get_by_name(new_remote.name):
             if not force:
                 raise ConanException(f"Remote '{new_remote.name}' already exists in remotes "
                                      "(use --force to continue)")
@@ -63,11 +62,11 @@ class _Remotes(object):
         for r in self._remotes:
             if r.url == new_remote.url:
                 msg = f"Remote url already existing in remote '{r.name}'. " \
-                      f"Having different remotes with same URL is not recommended."
+                          f"Having different remotes with same URL is not recommended."
                 if not force:
-                    raise ConanException(msg + " Use '--force' to override.")
+                    raise ConanException(f"{msg} Use '--force' to override.")
                 else:
-                    ConanOutput().warning(msg + " Adding duplicated remote because '--force'.")
+                    ConanOutput().warning(f"{msg} Adding duplicated remote because '--force'.")
         if index:
             self._remotes.insert(index, new_remote)
         else:
@@ -77,7 +76,7 @@ class _Remotes(object):
         assert isinstance(remote, Remote)
         current = self.get_by_name(remote.name)
         if not current:
-            raise ConanException("The remote '{}' doesn't exist".format(remote.name))
+            raise ConanException(f"The remote '{remote.name}' doesn't exist")
 
         index = self._remotes.index(current)
         self._remotes.remove(current)
@@ -89,10 +88,7 @@ class _Remotes(object):
         self._remotes.insert(new_index, remote)
 
     def get_by_name(self, name):
-        for r in self._remotes:
-            if r.name == name:
-                return r
-        return None
+        return next((r for r in self._remotes if r.name == name), None)
 
     def items(self):
         return self._remotes
@@ -114,8 +110,9 @@ class RemoteRegistry(object):
         if url:
             address = urlparse(url)
             if not all([address.scheme, address.netloc]):
-                self._output.warning("The URL '%s' is invalid. It must contain scheme and hostname."
-                                     % url)
+                self._output.warning(
+                    f"The URL '{url}' is invalid. It must contain scheme and hostname."
+                )
         else:
             self._output.warning("The URL is empty. It must contain scheme and hostname.")
 
@@ -156,16 +153,16 @@ class RemoteRegistry(object):
 
     def read(self, remote_name):
         remotes = self._load_remotes()
-        ret = remotes.get_by_name(remote_name)
-        if not ret:
-            raise ConanException("Remote '%s' not found in remotes" % remote_name)
-        return ret
+        if ret := remotes.get_by_name(remote_name):
+            return ret
+        else:
+            raise ConanException(f"Remote '{remote_name}' not found in remotes")
 
     def get_remote_index(self, remote: Remote):
         try:
             return self.list().index(remote)
         except ValueError:
-            raise ConanException("No remote: '{}' found".format(remote.name))
+            raise ConanException(f"No remote: '{remote.name}' found")
 
     def add(self, remote: Remote, force=False):
         self._validate_url(remote.url)

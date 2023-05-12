@@ -77,7 +77,7 @@ def _get_suffix(req, build_context_suffix=None):
 
 def _get_formatted_dirs(folders, prefix_path_):
     ret = []
-    for i, directory in enumerate(folders):
+    for directory in folders:
         directory = os.path.normpath(directory).replace("\\", "/")
         prefix = ""
         if not os.path.isabs(directory):
@@ -85,7 +85,7 @@ def _get_formatted_dirs(folders, prefix_path_):
         elif directory.startswith(prefix_path_):
             prefix = "${prefix}/"
             directory = os.path.relpath(directory, prefix_path_).replace("\\", "/")
-        ret.append("%s%s" % (prefix, directory))
+        ret.append(f"{prefix}{directory}")
     return ret
 
 
@@ -297,7 +297,7 @@ class _PCGenerator:
             # e.g., requires = "other_pkg/1.0"
             requires = [_get_package_name(req, self._build_context_suffix)
                         for req in self._transitive_reqs.values()]
-        description = "Conan package: %s" % pkg_name
+        description = f"Conan package: {pkg_name}"
         aliases = _get_package_aliases(self._dep)
         cpp_info = self._dep.cpp_info
         return _PCInfo(pkg_name, requires, description, cpp_info, aliases)
@@ -379,9 +379,11 @@ class PkgConfigDeps:
         activated_br = {r.ref.name for r in build_req.values()
                         if r.ref.name in self.build_context_activated}
         common_names = {r.ref.name for r in host_req.values()}.intersection(activated_br)
-        without_suffixes = [common_name for common_name in common_names
-                            if self.build_context_suffix.get(common_name) is None]
-        if without_suffixes:
+        if without_suffixes := [
+            common_name
+            for common_name in common_names
+            if self.build_context_suffix.get(common_name) is None
+        ]:
             raise ConanException(f"The packages {without_suffixes} exist both as 'require' and as"
                                  f" 'build require'. You need to specify a suffix using the "
                                  f"'build_context_suffix' attribute at the PkgConfigDeps generator.")
@@ -408,7 +410,7 @@ class PkgConfigDeps:
                 continue
 
             pc_generator = _PCGenerator(self._conanfile, dep, build_context_suffix=self.build_context_suffix)
-            pc_files.update(pc_generator.pc_files)
+            pc_files |= pc_generator.pc_files
         return pc_files
 
     def generate(self):

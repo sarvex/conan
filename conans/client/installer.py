@@ -63,7 +63,7 @@ class _PackageBuilder(object):
                 skip_build = True
 
         if is_dirty(build_folder):
-            conanfile.output.warning("Build folder is dirty, removing it: %s" % build_folder)
+            conanfile.output.warning(f"Build folder is dirty, removing it: {build_folder}")
             rmdir(build_folder)
             clean_dirty(build_folder)
 
@@ -92,11 +92,11 @@ class _PackageBuilder(object):
 
         try:
             run_build_method(conanfile, self._hook_manager)
-            conanfile.output.success("Package '%s' built" % pref.package_id)
-            conanfile.output.info("Build folder %s" % conanfile.build_folder)
+            conanfile.output.success(f"Package '{pref.package_id}' built")
+            conanfile.output.info(f"Build folder {conanfile.build_folder}")
         except Exception as exc:
             conanfile.output.error("\nPackage '%s' build failed" % pref.package_id)
-            conanfile.output.warning("Build folder %s" % conanfile.build_folder)
+            conanfile.output.warning(f"Build folder {conanfile.build_folder}")
             if isinstance(exc, ConanExceptionInUserConanfileMethod):
                 raise exc
             raise ConanException(exc)
@@ -106,12 +106,7 @@ class _PackageBuilder(object):
         save(os.path.join(conanfile.folders.base_build, CONANINFO), conanfile.info.dumps())
 
         package_id = pref.package_id
-        # Do the actual copy, call the conanfile.package() method
-        # While installing, the infos goes to build folder
-        prev = run_package_method(conanfile, package_id, self._hook_manager, pref.ref)
-
-        # FIXME: Conan 2.0 Clear the registry entry (package ref)
-        return prev
+        return run_package_method(conanfile, package_id, self._hook_manager, pref.ref)
 
     def build_package(self, node, package_layout):
         conanfile = node.conanfile
@@ -137,7 +132,7 @@ class _PackageBuilder(object):
         # TODO: cache2.0 check locks
         # with package_layout.conanfile_read_lock(self._output):
         with chdir(base_build):
-            conanfile.output.info('Building your package in %s' % base_build)
+            conanfile.output.info(f'Building your package in {base_build}')
             try:
                 src = base_source if getattr(conanfile, 'no_copy_source', False) else base_build
                 conanfile.folders.set_base_source(src)
@@ -230,7 +225,7 @@ class BinaryInstaller:
                     self._install_source(package.nodes[0], remotes)
 
     def install(self, deps_graph, remotes):
-        assert not deps_graph.error, "This graph cannot be installed: {}".format(deps_graph)
+        assert not deps_graph.error, f"This graph cannot be installed: {deps_graph}"
 
         ConanOutput().title("Installing packages")
 
@@ -261,9 +256,11 @@ class BinaryInstaller:
         downloads = []
         for level in install_order:
             for node in level:
-                for package in node.packages.values():
-                    if package.binary in (BINARY_UPDATE, BINARY_DOWNLOAD):
-                        downloads.append(package)
+                downloads.extend(
+                    package
+                    for package in node.packages.values()
+                    if package.binary in (BINARY_UPDATE, BINARY_DOWNLOAD)
+                )
         if not downloads:
             return
 
@@ -272,7 +269,9 @@ class BinaryInstaller:
         ConanOutput().subtitle(f"Downloading {download_count} package{plural}")
         parallel = self._cache.new_config.get("core.download:parallel", check_type=int)
         if parallel is not None:
-            ConanOutput().info("Downloading binary packages in %s parallel threads" % parallel)
+            ConanOutput().info(
+                f"Downloading binary packages in {parallel} parallel threads"
+            )
             thread_pool = ThreadPool(parallel)
             thread_pool.map(self._download_pkg, downloads)
             thread_pool.close()
@@ -308,10 +307,10 @@ class BinaryInstaller:
 
         if package.binary == BINARY_BUILD:
             ConanOutput()\
-                .subtitle(f"Installing package {pref.ref} ({handled_count} of {total_count})")
+                    .subtitle(f"Installing package {pref.ref} ({handled_count} of {total_count})")
             ConanOutput(scope=str(pref.ref))\
-                .highlight("Building from source")\
-                .info(f"Package {pref}")
+                    .highlight("Building from source")\
+                    .info(f"Package {pref}")
             self._handle_node_build(package, package_layout)
             # Just in case it was recomputed
             package.package_id = package.nodes[0].pref.package_id  # Just in case it was recomputed
@@ -321,12 +320,14 @@ class BinaryInstaller:
         elif package.binary == BINARY_CACHE:
             node = package.nodes[0]
             pref = node.pref
-            assert node.prev, "PREV for %s is None" % str(pref)
+            assert node.prev, f"PREV for {str(pref)} is None"
             node.conanfile.output.success(f'Already installed! ({handled_count} of {total_count})')
 
         # Make sure that all nodes with same pref compute package_info()
         pkg_folder = package_layout.package()
-        assert os.path.isdir(pkg_folder), "Pkg '%s' folder must exist: %s" % (str(pref), pkg_folder)
+        assert os.path.isdir(
+            pkg_folder
+        ), f"Pkg '{str(pref)}' folder must exist: {pkg_folder}"
         for n in package.nodes:
             n.prev = pref.revision  # Make sure the prev is assigned
             conanfile = n.conanfile
@@ -349,8 +350,9 @@ class BinaryInstaller:
         base_path = os.path.dirname(conanfile_path)
         conanfile.folders.set_base_folders(base_path, output_folder)
         output = conanfile.output
-        output.info("Rewriting files of editable package "
-                    "'{}' at '{}'".format(conanfile.name, conanfile.generators_folder))
+        output.info(
+            f"Rewriting files of editable package '{conanfile.name}' at '{conanfile.generators_folder}'"
+        )
         write_generators(conanfile, self._app)
 
         if node.binary == BINARY_EDITABLE_BUILD:
@@ -376,7 +378,7 @@ class BinaryInstaller:
         assert pref.package_id, "Package-ID without value"
         assert pkg_layout, "The pkg_layout should be declared here"
         assert node.binary == BINARY_BUILD
-        assert node.prev is None, "PREV for %s to be built should be None" % str(pref)
+        assert node.prev is None, f"PREV for {str(pref)} to be built should be None"
 
         with pkg_layout.package_lock():
             pkg_layout.package_remove()
@@ -385,7 +387,7 @@ class BinaryInstaller:
                 pref = builder.build_package(node, pkg_layout)
             assert node.prev, "Node PREV shouldn't be empty"
             assert node.pref.revision, "Node PREF revision shouldn't be empty"
-            assert pref.revision is not None, "PREV for %s to be built is None" % str(pref)
+            assert pref.revision is not None, f"PREV for {str(pref)} to be built is None"
             # at this point the package reference should be complete
             pkg_layout.reference = pref
             self._cache.assign_prev(pkg_layout)
@@ -393,7 +395,9 @@ class BinaryInstaller:
             # but better make sure here, and be able to report the actual folder in case
             # something fails)
             node.conanfile.folders.set_base_package(pkg_layout.package())
-            node.conanfile.output.success("Package folder %s" % node.conanfile.package_folder)
+            node.conanfile.output.success(
+                f"Package folder {node.conanfile.package_folder}"
+            )
 
     def _call_package_info(self, conanfile, package_folder, is_editable):
 

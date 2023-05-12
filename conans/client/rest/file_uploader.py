@@ -36,7 +36,7 @@ class FileUploader(object):
         """
         dedup_headers = {"X-Checksum-Deploy": "true"}
         if headers:
-            dedup_headers.update(headers)
+            dedup_headers |= headers
         response = self._requester.put(url, data="", verify=self._verify_ssl, headers=dedup_headers,
                                        auth=auth)
         if response.status_code == 500:
@@ -48,21 +48,19 @@ class FileUploader(object):
             return response
 
     def exists(self, url, auth):
-        response = self._requester.head(url, verify=self._verify_ssl, auth=auth)
-        return response
+        return self._requester.head(url, verify=self._verify_ssl, auth=auth)
 
     def upload(self, url, abs_path, auth=None, dedup=False, retry=None, retry_wait=None,
                headers=None, display_name=None):
         retry = retry if retry is not None else self._config.get("core.upload:retry", default=1, check_type=int)
         retry_wait = retry_wait if retry_wait is not None else \
-            self._config.get("core.upload:retry_wait", default=5, check_type=int)
+                self._config.get("core.upload:retry_wait", default=5, check_type=int)
 
         # Send always the header with the Sha1
         headers = copy(headers) or {}
         headers["X-Checksum-Sha1"] = sha1sum(abs_path)
         if dedup:
-            response = self._dedup(url, headers, auth)
-            if response:
+            if response := self._dedup(url, headers, auth):
                 return response
 
         for counter in range(retry + 1):
@@ -74,18 +72,20 @@ class FileUploader(object):
             except ConanException as exc:
                 if counter == retry:
                     raise
-                else:
-                    if self._output:
-                        self._output.error(exc)
-                        self._output.info("Waiting %d seconds to retry..." % retry_wait)
-                    time.sleep(retry_wait)
+                if self._output:
+                    self._output.error(exc)
+                    self._output.info("Waiting %d seconds to retry..." % retry_wait)
+                time.sleep(retry_wait)
 
     def _upload_file(self, url, abs_path,  headers, auth, display_name):
         file_size = os.stat(abs_path).st_size
         file_name = os.path.basename(abs_path)
-        description = "Uploading {}".format(file_name)
-        post_description = "Uploaded {}".format(
-            file_name) if not display_name else "Uploaded {} -> {}".format(file_name, display_name)
+        description = f"Uploading {file_name}"
+        post_description = (
+            f"Uploaded {file_name}"
+            if not display_name
+            else f"Uploaded {file_name} -> {display_name}"
+        )
 
         # self._output.info(description)
         with open(abs_path, mode='rb') as file_handler:

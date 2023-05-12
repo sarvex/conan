@@ -31,7 +31,7 @@ def _xcconfig_settings_filename(settings):
              ("architecture", architecture),
              ("sdk name", settings.get_safe("os.sdk")),
              ("sdk version", settings.get_safe("os.sdk_version"))]
-    name = "".join("_{}".format(v) for _, v in props if v is not None and v)
+    name = "".join(f"_{v}" for _, v in props if v is not None and v)
     return _format_name(name)
 
 
@@ -41,20 +41,16 @@ def _xcconfig_conditional(settings):
     architecture = _to_apple_arch(arch) or arch
     sdk = settings.get_safe("os.sdk") if settings.get_safe("os") != "Macos" else "macosx"
     if sdk:
-        sdk_condition = "{}{}".format(sdk, settings.get_safe("os.sdk_version") or "*")
+        sdk_condition = f'{sdk}{settings.get_safe("os.sdk_version") or "*"}'
 
-    return "[config={}][arch={}][sdk={}]".format(settings.get_safe("build_type"), architecture, sdk_condition)
+    return f'[config={settings.get_safe("build_type")}][arch={architecture}][sdk={sdk_condition}]'
 
 
 def _add_includes_to_file_or_create(filename, template, files_to_include):
-    if os.path.isfile(filename):
-        content = load(filename)
-    else:
-        content = template
-
+    content = load(filename) if os.path.isfile(filename) else template
     for include in files_to_include:
         if include not in content:
-            content = content + '#include "{}"\n'.format(include)
+            content = f'{content}#include "{include}"\n'
 
     return content
 
@@ -208,7 +204,7 @@ class XcodeDeps(object):
 
         for req, dep in deps.items():
             dep_name = _format_name(dep.ref.name)
-            content_multi = content_multi + '\n#include "conan_{}.xcconfig"\n'.format(dep_name)
+            content_multi = f'{content_multi}\n#include "conan_{dep_name}.xcconfig"\n'
         return content_multi
 
     def _pkg_xconfig_file(self, components):
@@ -217,8 +213,7 @@ class XcodeDeps(object):
         """
         content_multi = self._pkg_xconfig
         for pkg_name, comp_name in components:
-            content_multi = content_multi + '\n#include "conan_{}_{}.xcconfig"\n'.format(pkg_name,
-                                                                                         comp_name)
+            content_multi = f'{content_multi}\n#include "conan_{pkg_name}_{comp_name}.xcconfig"\n'
         return content_multi
 
     @property
@@ -228,15 +223,20 @@ class XcodeDeps(object):
                                                [self.general_name])
 
     def get_content_for_component(self, require, pkg_name, component_name, package_folder, transitive_internal, transitive_external):
-        result = {}
-
         conf_name = _xcconfig_settings_filename(self._conanfile.settings)
 
-        props_name = "conan_{}_{}{}.xcconfig".format(pkg_name, component_name, conf_name)
-        result[props_name] = self._conf_xconfig_file(require, pkg_name, component_name, package_folder, transitive_internal)
-
+        props_name = f"conan_{pkg_name}_{component_name}{conf_name}.xcconfig"
+        result = {
+            props_name: self._conf_xconfig_file(
+                require,
+                pkg_name,
+                component_name,
+                package_folder,
+                transitive_internal,
+            )
+        }
         # The entry point for each package
-        file_dep_name = "conan_{}_{}.xcconfig".format(pkg_name, component_name)
+        file_dep_name = f"conan_{pkg_name}_{component_name}.xcconfig"
         dep_content = self._dep_xconfig_file(pkg_name, component_name, file_dep_name, props_name, transitive_external)
 
         result[file_dep_name] = dep_content

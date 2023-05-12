@@ -23,7 +23,7 @@ class _ConditionSet:
 
     @staticmethod
     def _parse_expression(expression):
-        if expression == "" or expression == "*":
+        if expression in ["", "*"]:
             return [_Condition(">=", Version("0.0.0"))]
 
         operator = expression[0]
@@ -32,10 +32,9 @@ class _ConditionSet:
             index = 0
         else:
             index = 1
-        if operator in (">", "<"):
-            if expression[1] == "=":
-                operator += "="
-                index = 2
+        if operator in (">", "<") and expression[1] == "=":
+            operator += "="
+            index = 2
         version = expression[index:]
         if version == "":
             raise ConanException(f"Error parsing version range {expression}")
@@ -58,46 +57,49 @@ class _ConditionSet:
             return [_Condition(operator, Version(version))]
 
     def _valid(self, version, conf_resolve_prepreleases):
-        if version.pre:
-            # Follow the expression desires only if core.version_ranges:resolve_prereleases is None,
-            # else force to the conf's value
-            if conf_resolve_prepreleases is None:
-                if not self.prerelease:
-                    return False
-            elif conf_resolve_prepreleases is False:
-                return False
-        for condition in self.conditions:
-            if condition.operator == ">":
-                if not version > condition.version:
-                    return False
-            elif condition.operator == "<":
-                if not version < condition.version:
-                    return False
-            elif condition.operator == ">=":
-                if not version >= condition.version:
-                    return False
-            elif condition.operator == "<=":
-                if not version <= condition.version:
-                    return False
-            elif condition.operator == "=":
-                if not version == condition.version:
-                    return False
-        return True
+        if version.pre and (
+            conf_resolve_prepreleases is None
+            and not self.prerelease
+            or conf_resolve_prepreleases is not None
+            and conf_resolve_prepreleases is False
+        ):
+            return False
+        return not any(
+            condition.operator == "<"
+            and not version < condition.version
+            or condition.operator != "<"
+            and condition.operator == "<="
+            and not version <= condition.version
+            or condition.operator != "<"
+            and condition.operator != "<="
+            and condition.operator == "="
+            and version != condition.version
+            or condition.operator != "<"
+            and condition.operator != "<="
+            and condition.operator != "="
+            and condition.operator == ">"
+            and not version > condition.version
+            or condition.operator != "<"
+            and condition.operator != "<="
+            and condition.operator != "="
+            and condition.operator != ">"
+            and condition.operator == ">="
+            and not version >= condition.version
+            for condition in self.conditions
+        )
 
 
 class VersionRange:
     def __init__(self, expression):
         self._expression = expression
         tokens = expression.split(",")
-        prereleases = False
-        for t in tokens[1:]:
-            if "include_prerelease" in t:
-                prereleases = True
-                break
+        prereleases = any("include_prerelease" in t for t in tokens[1:])
         version_expr = tokens[0]
         self.condition_sets = []
-        for alternative in version_expr.split("||"):
-            self.condition_sets.append(_ConditionSet(alternative, prereleases))
+        self.condition_sets.extend(
+            _ConditionSet(alternative, prereleases)
+            for alternative in version_expr.split("||")
+        )
 
     def __str__(self):
         return self._expression
@@ -113,8 +115,8 @@ class VersionRange:
         :return: Whether the version is inside the range
         """
         assert isinstance(version, Version), type(version)
-        for condition_set in self.condition_sets:
-            if condition_set._valid(version, resolve_prerelease):
-                return True
-        return False
+        return any(
+            condition_set._valid(version, resolve_prerelease)
+            for condition_set in self.condition_sets
+        )
 

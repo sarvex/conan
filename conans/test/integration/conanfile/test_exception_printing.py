@@ -24,14 +24,10 @@ class ExceptionsTest(ConanFile):
                           "export", "export_sources", "build_requirements", "init"])
 def test_all_methods(direct, method):
     client = TestClient()
-    if direct:
-        throw = "raise Exception('Oh! an error!')"
-    else:
-        throw = "self._aux_method()"
-
+    throw = "raise Exception('Oh! an error!')" if direct else "self._aux_method()"
     client.save({"conanfile.py": conanfile.format(method=method, method_contents=throw)})
     client.run("create . ", assert_error=True)
-    assert "Error in %s() method, line 9" % method in client.out
+    assert f"Error in {method}() method, line 9" in client.out
     assert "Oh! an error!" in client.out
     if not direct:
         assert "while calling '_aux_method', line 12" in client.out

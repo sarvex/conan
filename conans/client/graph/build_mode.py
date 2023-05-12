@@ -37,21 +37,20 @@ class BuildMode:
                     self.never = True
                 elif param == "cascade":
                     self.cascade = True
+                elif param.startswith("missing:"):
+                    clean_pattern = param[len("missing:"):]
+                    clean_pattern = clean_pattern[:-1] if param.endswith("@") else clean_pattern
+                    clean_pattern = clean_pattern.replace("@#", "#")
+                    self.build_missing_patterns.append(clean_pattern)
                 else:
-                    if param.startswith("missing:"):
-                        clean_pattern = param[len("missing:"):]
-                        clean_pattern = clean_pattern[:-1] if param.endswith("@") else clean_pattern
-                        clean_pattern = clean_pattern.replace("@#", "#")
-                        self.build_missing_patterns.append(clean_pattern)
+                    # Remove the @ at the end, to match for
+                    # "conan install --requires=pkg/0.1@ --build=pkg/0.1@"
+                    clean_pattern = param[:-1] if param.endswith("@") else param
+                    clean_pattern = clean_pattern.replace("@#", "#")
+                    if clean_pattern and clean_pattern[0] == "!":
+                        self._excluded_patterns.append(clean_pattern[1:])
                     else:
-                        # Remove the @ at the end, to match for
-                        # "conan install --requires=pkg/0.1@ --build=pkg/0.1@"
-                        clean_pattern = param[:-1] if param.endswith("@") else param
-                        clean_pattern = clean_pattern.replace("@#", "#")
-                        if clean_pattern and clean_pattern[0] == "!":
-                            self._excluded_patterns.append(clean_pattern[1:])
-                        else:
-                            self.patterns.append(clean_pattern)
+                        self.patterns.append(clean_pattern)
 
             if self.never and (self.missing or self.patterns or self.cascade):
                 raise ConanException("--build=never not compatible with other options")
@@ -78,8 +77,9 @@ class BuildMode:
             return True
 
         if conan_file.build_policy == "always":
-            raise ConanException("{}: build_policy='always' has been removed. "
-                                 "Please use 'missing' only".format(conan_file))
+            raise ConanException(
+                f"{conan_file}: build_policy='always' has been removed. Please use 'missing' only"
+            )
 
         if self.cascade and with_deps_to_build:
             return True
@@ -103,9 +103,7 @@ class BuildMode:
             conan_file.output.info("Building package from source as defined by "
                                    "build_policy='missing'")
             return True
-        if self.should_build_missing(conan_file):
-            return True
-        return False
+        return bool(self.should_build_missing(conan_file))
 
     def should_build_missing(self, conanfile):
         for pattern in self.build_missing_patterns:
@@ -114,4 +112,4 @@ class BuildMode:
 
     def report_matches(self):
         for pattern in self._unused_patterns:
-            ConanOutput().error("No package matching '%s' pattern found." % pattern)
+            ConanOutput().error(f"No package matching '{pattern}' pattern found.")

@@ -263,4 +263,4 @@ class ClientCache(object):
         if not os.path.exists(self.settings_path):
             settings_yml = default_settings_yml
             save(self.settings_path, settings_yml)
-            save(self.settings_path + ".orig", settings_yml)  # stores a copy, to check migrations
+            save(f"{self.settings_path}.orig", settings_yml)

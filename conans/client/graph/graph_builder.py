@@ -47,9 +47,14 @@ class DepsGraphBuilder(object):
                 (require, node) = open_requires.popleft()
                 if require.override:
                     continue
-                new_node = self._expand_require(require, node, dep_graph, profile_host,
-                                                profile_build, graph_lock)
-                if new_node:
+                if new_node := self._expand_require(
+                    require,
+                    node,
+                    dep_graph,
+                    profile_host,
+                    profile_build,
+                    graph_lock,
+                ):
                     self._initialize_requires(new_node, dep_graph, graph_lock)
                     open_requires.extendleft((r, new_node)
                                              for r in reversed(new_node.conanfile.requires.values()))
@@ -85,17 +90,15 @@ class DepsGraphBuilder(object):
                                           prev_ref, base_previous, self._resolve_prereleases)
 
         if prev_node is None:
-            # new node, must be added and expanded (node -> new_node)
-            new_node = self._create_new_node(node, require, graph, profile_host, profile_build,
-                                             graph_lock)
-            return new_node
-        else:
-            # print("Closing a loop from ", node, "=>", prev_node)
-            # Keep previous "test" status only if current is also test
-            prev_node.test = prev_node.test and (node.test or require.test)
-            require.process_package_type(node, prev_node)
-            graph.add_edge(node, prev_node, require)
-            node.propagate_closing_loop(require, prev_node)
+            return self._create_new_node(
+                node, require, graph, profile_host, profile_build, graph_lock
+            )
+        # print("Closing a loop from ", node, "=>", prev_node)
+        # Keep previous "test" status only if current is also test
+        prev_node.test = prev_node.test and (node.test or require.test)
+        require.process_package_type(node, prev_node)
+        graph.add_edge(node, prev_node, require)
+        node.propagate_closing_loop(require, prev_node)
 
     @staticmethod
     def _conflicting_version(require, node,
@@ -104,9 +107,7 @@ class DepsGraphBuilder(object):
         prev_version_range = prev_require.version_range if prev_node is None else None
         if version_range:
             # TODO: Check user/channel conflicts first
-            if prev_version_range is not None:
-                pass  # Do nothing, evaluate current as it were a fixed one
-            else:
+            if prev_version_range is None:
                 if version_range.contains(prev_ref.version, resolve_prereleases):
                     require.ref = prev_ref
                 else:
@@ -216,20 +217,24 @@ class DepsGraphBuilder(object):
         if node.context == CONTEXT_HOST and not require.build:  # Only for DIRECT tool_requires
             return
         system_tool = profile_build.system_tools if node.context == CONTEXT_BUILD \
-            else profile_host.system_tools
+                else profile_host.system_tools
         if system_tool:
             version_range = require.version_range
             for d in system_tool:
-                if require.ref.name == d.name:
-                    if version_range:
-                        if version_range.contains(d.version, resolve_prereleases):
-                            require.ref.version = d.version  # resolved range is replaced by exact
-                            return d, ConanFile(str(d)), RECIPE_SYSTEM_TOOL, None
-                    elif require.ref.version == d.version:
-                        if d.revision is None or require.ref.revision is None or \
-                                d.revision == require.ref.revision:
-                            require.ref.revision = d.revision
-                            return d, ConanFile(str(d)), RECIPE_SYSTEM_TOOL, None
+                if version_range:
+                    if require.ref.name == d.name and version_range.contains(
+                        d.version, resolve_prereleases
+                    ):
+                        require.ref.version = d.version  # resolved range is replaced by exact
+                        return d, ConanFile(str(d)), RECIPE_SYSTEM_TOOL, None
+                elif require.ref.version == d.version:
+                    if require.ref.name == d.name and (
+                        d.revision is None
+                        or require.ref.revision is None
+                        or d.revision == require.ref.revision
+                    ):
+                        require.ref.revision = d.revision
+                        return d, ConanFile(str(d)), RECIPE_SYSTEM_TOOL, None
 
     def _create_new_node(self, node, require, graph, profile_host, profile_build, graph_lock):
         if graph_lock is not None:

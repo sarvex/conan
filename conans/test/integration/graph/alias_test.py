@@ -40,8 +40,10 @@ class Pkg(ConanFile):
 
         def export_alias(name, conanfile):
             client.save({"conanfile.py": conanfile})
-            client.run("export . --name=%s --version=0.1 --user=user --channel=testing" % name)
-            client.alias("%s/ALIAS@user/testing %s/0.1@user/testing" % (name, name))
+            client.run(
+                f"export . --name={name} --version=0.1 --user=user --channel=testing"
+            )
+            client.alias(f"{name}/ALIAS@user/testing {name}/0.1@user/testing")
 
         for name, conanfile in [
             ("CA", conanfile0),
@@ -145,8 +147,10 @@ class Pkg(ConanFile):
 
         def export_alias(name, conanfile):
             client.save({"conanfile.py": conanfile})
-            client.run("export . --name=%s --version=0.1 --user=user --channel=testing" % name)
-            client.alias("%s/ALIAS@user/testing %s/0.1@user/testing" % (name, name))
+            client.run(
+                f"export . --name={name} --version=0.1 --user=user --channel=testing"
+            )
+            client.alias(f"{name}/ALIAS@user/testing {name}/0.1@user/testing")
 
         export_alias("CH", conanfile0)
 
@@ -270,7 +274,7 @@ class Pkg(ConanFile):
         client.run("export . --name=LibC --version=0.1 --user=user --channel=testing")
         client.alias("LibC/latest@user/testing",  "LibC/0.1@user/testing")
 
-        conanfile = conanfile % "LibC/latest@user/testing"
+        conanfile %= "LibC/latest@user/testing"
         conanfile = conanfile.replace('"myoption=True"', '"myoption=True", "LibD:myoption=False"')
         client.save({"conanfile.py": conanfile})
 
@@ -345,7 +349,13 @@ class Pkg(ConanFile):
         servers = {"default": test_server}
         client = TestClient(servers=servers, inputs=["admin", "password"])
         for i in (1, 2):
-            client.save({"conanfile.py": GenConanfile().with_name("hello").with_version("0.%s" % i)})
+            client.save(
+                {
+                    "conanfile.py": GenConanfile()
+                    .with_name("hello")
+                    .with_version(f"0.{i}")
+                }
+            )
             client.run("export . --user=lasote --channel=channel")
 
         client.alias("hello/0.X@lasote/channel",  "hello/0.1@lasote/channel")

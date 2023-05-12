@@ -104,7 +104,7 @@ BUILT_IN_CONFS = {
     "tools.info.package_id:confs": "List of existing configuration to be part of the package ID",
 }
 
-BUILT_IN_CONFS = {key: value for key, value in sorted(BUILT_IN_CONFS.items())}
+BUILT_IN_CONFS = dict(sorted(BUILT_IN_CONFS.items()))
 
 
 CORE_CONF_PATTERN = re.compile(r"^core[.:]")
@@ -128,7 +128,7 @@ class _ConfValue(object):
 
     def __init__(self, name, value, path=False, update=None):
         if name != name.lower():
-            raise ConanException("Conf '{}' must be lowercase".format(name))
+            raise ConanException(f"Conf '{name}' must be lowercase")
         self._name = name
         self._value = value
         self._value_type = type(value)
@@ -151,13 +151,13 @@ class _ConfValue(object):
 
     def dumps(self):
         if self._value is None:
-            return "{}=!".format(self._name)  # unset
+            return f"{self._name}=!"
         elif self._value_type is list and _ConfVarPlaceHolder in self._value:
             v = self._value[:]
             v.remove(_ConfVarPlaceHolder)
-            return "{}={}".format(self._name, v)
+            return f"{self._name}={v}"
         else:
-            return "{}={}".format(self._name, self._value)
+            return f"{self._name}={self._value}"
 
     def serialize(self):
         if self._value is None:
@@ -228,8 +228,9 @@ class _ConfValue(object):
             # really know the original value type
             pass
         elif o_type != v_type:
-            raise ConanException("It's not possible to compose {} values "
-                                 "and {} ones.".format(v_type.__name__, o_type.__name__))
+            raise ConanException(
+                f"It's not possible to compose {v_type.__name__} values and {o_type.__name__} ones."
+            )
         # TODO: In case of any other object types?
 
     def set_relative_base_folder(self, folder):
@@ -257,7 +258,7 @@ class Conf:
         return bool(self._values)
 
     def __repr__(self):
-        return "Conf: " + repr(self._values)
+        return f"Conf: {repr(self._values)}"
 
     def __eq__(self, other):
         """
@@ -267,10 +268,11 @@ class Conf:
 
     def validate(self):
         for conf in self._values:
-            if conf.startswith("tools") or conf.startswith("core"):
-                if conf not in BUILT_IN_CONFS:
-                    raise ConanException(f"Unknown conf '{conf}'. Use 'conan config list' to "
-                                         "display existing configurations")
+            if (
+                conf.startswith("tools") or conf.startswith("core")
+            ) and conf not in BUILT_IN_CONFS:
+                raise ConanException(f"Unknown conf '{conf}'. Use 'conan config list' to "
+                                     "display existing configurations")
 
     def items(self):
         # FIXME: Keeping backward compatibility
@@ -291,24 +293,22 @@ class Conf:
             raise ConanException(f"[conf] '{conf_name}' does not exist in configuration list. "
                                  f" Run 'conan config list' to see all the available confs.")
 
-        conf_value = self._values.get(conf_name)
-        if conf_value:
-            v = conf_value.value
-            # Some smart conversions
-            if check_type is bool and not isinstance(v, bool):
-                # Perhaps, user has introduced a "false", "0" or even "off"
-                return str(v).lower() not in Conf.boolean_false_expressions
-            elif check_type is str and not isinstance(v, str):
-                return str(v)
-            elif v is None:  # value was unset
-                return default
-            elif check_type is not None and not isinstance(v, check_type):
-                raise ConanException(f"[conf] {conf_name} must be a "
-                                     f"{check_type.__name__}-like object. The value '{v}' "
-                                     f"introduced is a {type(v).__name__} object")
-            return v
-        else:
+        if not (conf_value := self._values.get(conf_name)):
             return default
+        v = conf_value.value
+        # Some smart conversions
+        if check_type is bool and not isinstance(v, bool):
+            # Perhaps, user has introduced a "false", "0" or even "off"
+            return str(v).lower() not in Conf.boolean_false_expressions
+        elif check_type is str and not isinstance(v, str):
+            return str(v)
+        elif v is None:  # value was unset
+            return default
+        elif check_type is not None and not isinstance(v, check_type):
+            raise ConanException(f"[conf] {conf_name} must be a "
+                                 f"{check_type.__name__}-like object. The value '{v}' "
+                                 f"introduced is a {type(v).__name__} object")
+        return v
 
     def pop(self, conf_name, default=None):
         """
@@ -344,7 +344,7 @@ class Conf:
         """
         ret = {}
         for v in self._values.values():
-            ret.update(v.serialize())
+            ret |= v.serialize()
         return ret
 
     def define(self, name, value):
@@ -417,11 +417,10 @@ class Conf:
         :param name: Name of the configuration.
         :param value: Value to remove.
         """
-        conf_value = self._values.get(name)
-        if conf_value:
+        if conf_value := self._values.get(name):
             conf_value.remove(value)
         else:
-            raise ConanException("Conf {} does not exist.".format(name))
+            raise ConanException(f"Conf {name} does not exist.")
 
     def compose_conf(self, other):
         """
@@ -470,9 +469,7 @@ class Conf:
         # Reading the list of all the configurations selected by the user to use for the package_id
         package_id_confs = self.get("tools.info.package_id:confs", default=[], check_type=list)
         for conf_name in package_id_confs:
-            value = self.get(conf_name)
-            # Pruning any empty values, those should not affect package ID
-            if value:
+            if value := self.get(conf_name):
                 result.define(conf_name, value)
         return result
 
@@ -491,7 +488,7 @@ class ConfDefinition:
         self._pattern_confs = OrderedDict()
 
     def __repr__(self):
-        return "ConfDefinition: " + repr(self._pattern_confs)
+        return f"ConfDefinition: {repr(self._pattern_confs)}"
 
     def __bool__(self):
         return bool(self._pattern_confs)
@@ -517,8 +514,10 @@ class ConfDefinition:
                 patter_key += ":"
 
             pattern_values = patter_conf.show(fnpattern, patter_key)
-            result.update({patter_key + pattern_subkey: pattern_subvalue
-                           for pattern_subkey, pattern_subvalue in pattern_values.items()})
+            result |= {
+                patter_key + pattern_subkey: pattern_subvalue
+                for pattern_subkey, pattern_subvalue in pattern_values.items()
+            }
 
         return result
 
@@ -558,8 +557,7 @@ class ConfDefinition:
             self._update_conf_definition(pattern, conf)
 
     def _update_conf_definition(self, pattern, conf):
-        existing = self._pattern_confs.get(pattern)
-        if existing:
+        if existing := self._pattern_confs.get(pattern):
             self._pattern_confs[pattern] = conf.compose_conf(existing)
         else:
             self._pattern_confs[pattern] = conf
@@ -571,8 +569,7 @@ class ConfDefinition:
         """
         for pattern, conf in other._pattern_confs.items():
             new_conf = conf.filter_user_modules()  # Creates a copy, filtered
-            existing = self._pattern_confs.get(pattern)
-            if existing:
+            if existing := self._pattern_confs.get(pattern):
                 existing.compose_conf(new_conf)
             else:
                 self._pattern_confs[pattern] = new_conf
@@ -586,9 +583,9 @@ class ConfDefinition:
 
         if not _is_profile_module(name):
             if profile:
-                raise ConanException("[conf] '{}' not allowed in profiles".format(key))
+                raise ConanException(f"[conf] '{key}' not allowed in profiles")
             if pattern is not None:
-                raise ConanException("Conf '{}' cannot have a package pattern".format(key))
+                raise ConanException(f"Conf '{key}' cannot have a package pattern")
 
         # strip whitespaces before/after =
         # values are not strip() unless they are a path, to preserve potential whitespaces
@@ -609,8 +606,12 @@ class ConfDefinition:
             if pattern is None:
                 result.append(conf.dumps())
             else:
-                result.append("\n".join("{}:{}".format(pattern, line) if line else ""
-                                        for line in conf.dumps().splitlines()))
+                result.append(
+                    "\n".join(
+                        f"{pattern}:{line}" if line else ""
+                        for line in conf.dumps().splitlines()
+                    )
+                )
         if result:
             result.append("")
         return "\n".join(result)
@@ -619,7 +620,7 @@ class ConfDefinition:
         result = {}
         for pattern, conf in self._pattern_confs.items():
             if pattern is None:
-                result.update(conf.serialize())
+                result |= conf.serialize()
             else:
                 for k, v in conf.serialize():
                     result[f"{pattern}:{k}"] = v
@@ -635,7 +636,7 @@ class ConfDefinition:
             parsed_value = eval(__v)
             if isinstance(parsed_value, str):  # xxx:xxx = "my string"
                 # Let's respect the quotes introduced by any user
-                parsed_value = '"{}"'.format(parsed_value)
+                parsed_value = f'"{parsed_value}"'
         except:
             # It means eval() failed because of a string without quotes
             parsed_value = __v.strip()
@@ -657,7 +658,7 @@ class ConfDefinition:
                 self.update(pattern_name, parsed_value, profile=profile, method=method)
                 break
             else:
-                raise ConanException("Bad conf definition: {}".format(line))
+                raise ConanException(f"Bad conf definition: {line}")
 
     def validate(self):
         for conf in self._pattern_confs.values():

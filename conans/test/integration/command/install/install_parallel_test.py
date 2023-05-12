@@ -16,18 +16,22 @@ class InstallParallelTest(unittest.TestCase):
         client.save({"conanfile.py": GenConanfile()})
 
         for i in range(counter):
-            client.run("create . --name=pkg%s --version=0.1 --user=user --channel=testing" % i)
+            client.run(
+                f"create . --name=pkg{i} --version=0.1 --user=user --channel=testing"
+            )
         client.run("upload * --confirm -r default")
         client.run("remove * -c")
 
         # Lets consume the packages
         conanfile_txt = ["[requires]"]
-        for i in range(counter):
-            conanfile_txt.append("pkg%s/0.1@user/testing" % i)
+        conanfile_txt.extend(f"pkg{i}/0.1@user/testing" for i in range(counter))
         conanfile_txt = "\n".join(conanfile_txt)
 
         client.save({"conanfile.txt": conanfile_txt}, clean_first=True)
         client.run("install .")
-        self.assertIn("Downloading binary packages in %s parallel threads" % threads, client.out)
+        self.assertIn(
+            f"Downloading binary packages in {threads} parallel threads",
+            client.out,
+        )
         for i in range(counter):
-            self.assertIn("pkg%s/0.1@user/testing: Package installed" % i, client.out)
+            self.assertIn(f"pkg{i}/0.1@user/testing: Package installed", client.out)

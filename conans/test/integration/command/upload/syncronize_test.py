@@ -25,7 +25,7 @@ class SynchronizeTest(unittest.TestCase):
         client.run("export . --user=lasote --channel=stable")
         ref_with_rev = client.cache.get_latest_recipe_reference(ref)
         # Upload conan file
-        client.run("upload %s -r default" % str(ref))
+        client.run(f"upload {str(ref)} -r default")
 
         server_conan_path = remote_paths.export(ref_with_rev)
         self.assertTrue(os.path.exists(os.path.join(server_conan_path, EXPORT_TGZ_NAME)))
@@ -38,7 +38,7 @@ class SynchronizeTest(unittest.TestCase):
         os.remove(os.path.join(client.current_folder, "to_be_deleted.txt"))
         client.run("export . --user=lasote --channel=stable")
         ref_with_rev = client.cache.get_latest_recipe_reference(ref)
-        client.run("upload %s -r default" % str(ref))
+        client.run(f"upload {str(ref)} -r default")
         server_conan_path = remote_paths.export(ref_with_rev)
         self.assertTrue(os.path.exists(os.path.join(server_conan_path, EXPORT_TGZ_NAME)))
         tmp = temp_folder()
@@ -53,7 +53,7 @@ class SynchronizeTest(unittest.TestCase):
         client.save(files)
         client.run("export . --user=lasote --channel=stable")
         ref_with_rev = client.cache.get_latest_recipe_reference(ref)
-        client.run("upload %s -r default" % str(ref))
+        client.run(f"upload {str(ref)} -r default")
 
         server_conan_path = remote_paths.export(ref_with_rev)
 
@@ -69,12 +69,12 @@ class SynchronizeTest(unittest.TestCase):
         # Now try with the package
         ##########################
 
-        client.run("install --requires=%s --build missing" % str(ref))
+        client.run(f"install --requires={str(ref)} --build missing")
         # Upload package
         ref_with_rev = client.cache.get_latest_recipe_reference(ref)
         pkg_ids = client.cache.get_package_references(ref_with_rev)
         pref = client.cache.get_latest_package_reference(pkg_ids[0])
-        client.run("upload %s:%s -r default -c" % (str(ref), str(pkg_ids[0].package_id)))
+        client.run(f"upload {str(ref)}:{str(pkg_ids[0].package_id)} -r default -c")
 
         # Check that package exists on server
         package_server_path = remote_paths.package(pref)

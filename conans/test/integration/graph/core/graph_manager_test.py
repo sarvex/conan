@@ -12,8 +12,9 @@ def _check_transitive(node, transitive_deps):
 
     if len(values) != len(transitive_deps):
         values = [r.require.ref for r in values]
-        raise Exception("{}: Number of deps don't match \n{}!=\n{}".format(node, values,
-                                                                           transitive_deps))
+        raise Exception(
+            f"{node}: Number of deps don't match \n{values}!=\n{transitive_deps}"
+        )
 
     for v1, v2 in zip(values, transitive_deps):
         if v1.node is not v2[0]:

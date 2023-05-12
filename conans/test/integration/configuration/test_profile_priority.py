@@ -9,9 +9,13 @@ def test_profile_local_folder_priority_cache():
     """ includes or args without "./" will resolve to the cache first
     """
     c = TestClient()
-    c.save({"profiles/default": f"include(otherprofile)",
+    c.save(
+        {
+            "profiles/default": "include(otherprofile)",
             "profiles/otherprofile": "[settings]\nos=AIX",
-            "conanfile.txt": ""})
+            "conanfile.txt": "",
+        }
+    )
     save(os.path.join(c.cache.profiles_path, "otherprofile"), "[settings]\nos=FreeBSD")
 
     # Must use local path, otherwise look for it in the cache
@@ -23,9 +27,13 @@ def test_profile_local_folder_priority_relative():
     """ The local include(./profile) must have priority over a file with same name in cache
     """
     c = TestClient()
-    c.save({"profiles/default": f"include(./otherprofile)",
+    c.save(
+        {
+            "profiles/default": "include(./otherprofile)",
             "profiles/otherprofile": "[settings]\nos=AIX",
-            "conanfile.txt": ""})
+            "conanfile.txt": "",
+        }
+    )
     save(os.path.join(c.cache.profiles_path, "otherprofile"), "[settings]\nos=FreeBSD")
 
     # Must use local path, otherwise look for it in the cache

@@ -46,8 +46,8 @@ class DiamondTest(unittest.TestCase):
         build_file = os.path.join(self.client.current_folder, BUILD_INFO_CMAKE)
         content = load(build_file)
         for dep in ("Hello3", "Hello2", "hello1", "hello0"):
-            self.assertIn("set(CONAN_INCLUDE_DIRS_%s " % dep.upper(), content)
-            self.assertIn("set(CONAN_LIBS_%s hello%s)" % (dep.upper(), dep), content)
+            self.assertIn(f"set(CONAN_INCLUDE_DIRS_{dep.upper()} ", content)
+            self.assertIn(f"set(CONAN_LIBS_{dep.upper()} hello{dep})", content)
 
     def _run(self, cmake_targets=False, language=0):
 

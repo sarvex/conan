@@ -8,14 +8,14 @@ class TestEditablePackageTest:
         ref = "--name=lib --version=version  --user=user --channel=name"
         t = TestClient()
         t.save({'conanfile.py': GenConanfile()})
-        t.run('editable add . {}'.format(ref))
+        t.run(f'editable add . {ref}')
         assert "Reference 'lib/version@user/name' in editable mode" in t.out
 
     def test_editable_list_search(self):
         ref = "--name=lib --version=version  --user=user --channel=name"
         t = TestClient()
         t.save({'conanfile.py': GenConanfile()})
-        t.run('editable add . {}'.format(ref))
+        t.run(f'editable add . {ref}')
         t.run("editable list")
         assert "lib/version@user/name" in t.out
         assert "    Path:" in t.out

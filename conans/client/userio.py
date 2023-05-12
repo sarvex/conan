@@ -28,9 +28,7 @@ def color_enabled(stream):
         # CLICOLOR_FORCE != 0, ANSI colors should be enabled no matter what.
         return True
 
-    if os.getenv("NO_COLOR") is not None:
-        return False
-    return is_terminal(stream)
+    return False if os.getenv("NO_COLOR") is not None else is_terminal(stream)
 
 
 def init_colorama(stream):
@@ -73,14 +71,14 @@ class UserInput(object):
 
         if not username:
             if self._interactive:
-                self._out.write("Remote '%s' username: " % remote_name)
+                self._out.write(f"Remote '{remote_name}' username: ")
             username = self._get_env_username(remote_name)
-            if not username:
-                self._raise_if_non_interactive()
-                username = self.get_username()
+        if not username:
+            self._raise_if_non_interactive()
+            username = self.get_username()
 
         if self._interactive:
-            self._out.write('Please enter a password for "%s" account: ' % username)
+            self._out.write(f'Please enter a password for "{username}" account: ')
         try:
             pwd = self._get_env_password(remote_name)
             if not pwd:
@@ -89,7 +87,7 @@ class UserInput(object):
         except ConanException:
             raise
         except Exception as e:
-            raise ConanException('Cancelled pass %s' % e)
+            raise ConanException(f'Cancelled pass {e}')
         return username, pwd
 
     def get_username(self):
@@ -112,24 +110,22 @@ class UserInput(object):
         self._raise_if_non_interactive()
 
         if default_value:
-            self._out.write('%s (%s): ' % (msg, default_value))
+            self._out.write(f'{msg} ({default_value}): ')
         else:
-            self._out.write('%s: ' % msg)
+            self._out.write(f'{msg}: ')
         s = self._ins.readline().replace("\n", "")
-        if default_value is not None and s == '':
-            return default_value
-        return s
+        return default_value if default_value is not None and s == '' else s
 
     def request_boolean(self, msg, default_option=None):
         """Request user to input a boolean"""
         ret = None
         while ret is None:
             if default_option is True:
-                s = self.request_string("%s (YES/no)" % msg)
+                s = self.request_string(f"{msg} (YES/no)")
             elif default_option is False:
-                s = self.request_string("%s (NO/yes)" % msg)
+                s = self.request_string(f"{msg} (NO/yes)")
             else:
-                s = self.request_string("%s (yes/no)" % msg)
+                s = self.request_string(f"{msg} (yes/no)")
             if default_option is not None and s == '':
                 return default_option
             if s.lower() in ['yes', 'y']:
@@ -137,7 +133,7 @@ class UserInput(object):
             elif s.lower() in ['no', 'n']:
                 ret = False
             else:
-                self._out.error("%s is not a valid answer" % s)
+                self._out.error(f"{s} is not a valid answer")
         return ret
 
     def _get_env_password(self, remote_name):
@@ -145,7 +141,7 @@ class UserInput(object):
         Try CONAN_PASSWORD_REMOTE_NAME or CONAN_PASSWORD or return None
         """
         remote_name = remote_name.replace("-", "_").upper()
-        var_name = "CONAN_PASSWORD_%s" % remote_name
+        var_name = f"CONAN_PASSWORD_{remote_name}"
         ret = os.getenv(var_name, None) or os.getenv("CONAN_PASSWORD", None)
         if ret:
             self._out.info("Got password '******' from environment")
@@ -156,9 +152,9 @@ class UserInput(object):
         Try CONAN_LOGIN_USERNAME_REMOTE_NAME or CONAN_LOGIN_USERNAME or return None
         """
         remote_name = remote_name.replace("-", "_").upper()
-        var_name = "CONAN_LOGIN_USERNAME_%s" % remote_name
+        var_name = f"CONAN_LOGIN_USERNAME_{remote_name}"
         ret = os.getenv(var_name, None) or os.getenv("CONAN_LOGIN_USERNAME", None)
 
         if ret:
-            self._out.info("Got username '%s' from environment" % ret)
+            self._out.info(f"Got username '{ret}' from environment")
         return ret

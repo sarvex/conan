@@ -39,21 +39,21 @@ class BazelDeps(object):
         self._save_main_buildfiles(content, self._conanfile.generators_folder)
 
     def _save_dependency_buildfile(self, dependency, buildfile_content, conandeps):
-        filename = '{}/{}/BUILD'.format(conandeps, dependency.ref.name)
+        filename = f'{conandeps}/{dependency.ref.name}/BUILD'
         save(filename, buildfile_content)
         return filename
 
     def _get_build_dependency_buildfile_content(self, dependency):
-        filegroup = textwrap.dedent("""
+        return textwrap.dedent(
+            """
             filegroup(
                 name = "{}_binaries",
                 data = glob(["**"]),
                 visibility = ["//visibility:public"],
             )
 
-        """).format(dependency.ref.name)
-
-        return filegroup
+        """
+        ).format(dependency.ref.name)
 
     def _get_dependency_buildfile_content(self, dependency):
         template = textwrap.dedent("""
@@ -186,7 +186,7 @@ class BazelDeps(object):
         """
         for each_bin in bindirs:
             if not os.path.exists(each_bin):
-                self._conanfile.output.warning("The bin folder doesn't exist: {}".format(each_bin))
+                self._conanfile.output.warning(f"The bin folder doesn't exist: {each_bin}")
                 continue
             files = os.listdir(each_bin)
             for f in files:
@@ -200,7 +200,7 @@ class BazelDeps(object):
     def _get_lib_file_paths(self, shared, libdirs, bindirs, lib):
         for libdir in libdirs:
             if not os.path.exists(libdir):
-                self._conanfile.output.warning("The library folder doesn't exist: {}".format(libdir))
+                self._conanfile.output.warning(f"The library folder doesn't exist: {libdir}")
                 continue
             files = os.listdir(libdir)
             lib_basename = None
@@ -216,9 +216,12 @@ class BazelDeps(object):
                     lib_path = full_path
                     break
                 name, ext = os.path.splitext(f)
-                if ext in (".so", ".lib", ".a", ".dylib", ".bc"):
-                    if ext != ".lib" and name.startswith("lib"):
-                        name = name[3:]
+                if (
+                    ext in (".so", ".lib", ".a", ".dylib", ".bc")
+                    and ext != ".lib"
+                    and name.startswith("lib")
+                ):
+                    name = name[3:]
                 if lib == name:
                     lib_basename = f
                     lib_path = full_path
@@ -227,10 +230,11 @@ class BazelDeps(object):
                 dll_path = None
                 name, ext = os.path.splitext(lib_basename)
                 if shared and ext == ".lib":
-                    dll_path = self._get_dll_file_paths(bindirs, name+".dll")
+                    dll_path = self._get_dll_file_paths(bindirs, f"{name}.dll")
                 return lib_path, dll_path
-        self._conanfile.output.warning("The library {} cannot be found in the "
-                                       "dependency".format(lib))
+        self._conanfile.output.warning(
+            f"The library {lib} cannot be found in the dependency"
+        )
         return None, None
 
     def _create_new_local_repository(self, dependency, dependency_buildfile_name):
@@ -240,20 +244,20 @@ class BazelDeps(object):
             # and the build_folder and the source_folder might be different, so there is no common
             # base.
             raise ConanException("BazelDeps doesn't support editable packages")
-        snippet = textwrap.dedent("""
+        return textwrap.dedent(
+            """
             native.new_local_repository(
                 name="{}",
                 path="{}",
                 build_file="{}",
             )
-        """).format(
+        """
+        ).format(
             dependency.ref.name,
             # FIXME: This shouldn't use package_folder, at editables it doesn't exists
             dependency.package_folder.replace("\\", "/"),
-            dependency_buildfile_name.replace("\\", "/")
+            dependency_buildfile_name.replace("\\", "/"),
         )
-
-        return snippet
 
     def _get_main_buildfile_content(self, local_repositories):
         template = textwrap.dedent("""
@@ -263,16 +267,14 @@ class BazelDeps(object):
 
         if local_repositories:
             function_content = "\n".join(local_repositories)
-            function_content = '    '.join(line for line in function_content.splitlines(True))
+            function_content = '    '.join(function_content.splitlines(True))
         else:
             function_content = '    pass'
 
-        content = template.format(function_content)
-
-        return content
+        return template.format(function_content)
 
     def _save_main_buildfiles(self, content, generators_folder):
         # A BUILD file must exist, even if it's empty, in order for Bazel
         # to detect it as a Bazel package and to allow to load the .bzl files
-        save("{}/BUILD".format(generators_folder), "")
-        save("{}/dependencies.bzl".format(generators_folder), content)
+        save(f"{generators_folder}/BUILD", "")
+        save(f"{generators_folder}/dependencies.bzl", content)

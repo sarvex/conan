@@ -116,8 +116,11 @@ def test_complete(client, gtest_run_true):
 
     # Run the RUN environment
     if platform.system() != "Windows":
-        cmd = environment_wrap_command("conanrunenv", client.current_folder,
-                                       "mygtest.sh && .{}myrunner.sh".format(os.sep))
+        cmd = environment_wrap_command(
+            "conanrunenv",
+            client.current_folder,
+            f"mygtest.sh && .{os.sep}myrunner.sh",
+        )
         client.run_command(cmd, assert_error=not gtest_run_true)
         if gtest_run_true:
             assert "MYGTEST=Linux!!" in client.out
@@ -209,8 +212,9 @@ def test_profile_buildenv():
     client.run("install . -pr=myprofile")
     # Run the BUILD environment
     ext = "bat" if platform.system() == "Windows" else "sh"  # TODO: Decide on logic .bat vs .sh
-    cmd = environment_wrap_command("conanbuildenv", client.current_folder,
-                                   "mycompiler.{}".format(ext))
+    cmd = environment_wrap_command(
+        "conanbuildenv", client.current_folder, f"mycompiler.{ext}"
+    )
     client.run_command(cmd)
     assert "MYCOMPILER!!" in client.out
     assert "MYPATH=" in client.out
@@ -446,14 +450,13 @@ def test_environment_scripts_generated_envvars(require_run):
             assert "LD_LIBRARY_PATH" not in conanrunenv
         else:
             assert not os.path.exists("consumer_pkg/conanrunenv.bat")
+    elif require_run:
+        conanbuildenv = client.load("consumer_pkg/conanbuildenv.sh")
+        conanrunenv = client.load("consumer_pkg/conanrunenv.sh")
+        assert "LD_LIBRARY_PATH" in conanbuildenv
+        assert "LD_LIBRARY_PATH" in conanrunenv
     else:
-        if require_run:
-            conanbuildenv = client.load("consumer_pkg/conanbuildenv.sh")
-            conanrunenv = client.load("consumer_pkg/conanrunenv.sh")
-            assert "LD_LIBRARY_PATH" in conanbuildenv
-            assert "LD_LIBRARY_PATH" in conanrunenv
-        else:
-            assert not os.path.exists("consumer_pkg/conanrunenv.sh")
+        assert not os.path.exists("consumer_pkg/conanrunenv.sh")
 
     if require_run:
         # Build context LINUX - Host context LINUX
@@ -602,9 +605,13 @@ def test_massive_paths(num_deps):
         """)
 
     for i in range(num_deps):
-        client.save({"conanfile.py": conanfile,
-                     "mycompiler{}.bat".format(i): compiler_bat.format(i)})
-        client.run("create . --name=pkg{} --version=0.1".format(i))
+        client.save(
+            {
+                "conanfile.py": conanfile,
+                f"mycompiler{i}.bat": compiler_bat.format(i),
+            }
+        )
+        client.run(f"create . --name=pkg{i} --version=0.1")
 
     conanfile = textwrap.dedent("""\
         from conan import ConanFile
@@ -613,21 +620,22 @@ def test_massive_paths(num_deps):
             requires = {}
             generators = "VirtualRunEnv"
         """)
-    requires = ", ".join('"pkg{}/0.1"'.format(i) for i in range(num_deps))
+    requires = ", ".join(f'"pkg{i}/0.1"' for i in range(num_deps))
     conanfile = conanfile.format(requires)
     client.save({"conanfile.py": conanfile}, clean_first=True)
     client.run("install . -c tools.env.virtualenv:powershell=True")
     assert os.path.isfile(os.path.join(client.current_folder, "conanrunenv.ps1"))
     assert not os.path.isfile(os.path.join(client.current_folder, "conanrunenv.bat"))
     for i in range(num_deps):
-        cmd = environment_wrap_command("conanrunenv", client.current_folder,
-                                       "mycompiler{}.bat".format(i))
+        cmd = environment_wrap_command(
+            "conanrunenv", client.current_folder, f"mycompiler{i}.bat"
+        )
         if num_deps > 50:  # to be safe if we change the "num_deps" number
             client.run_command(cmd, assert_error=True)
             assert "is not recognized as an internal" in client.out
         else:
             client.run_command(cmd)
-            assert "MYTOOL {}!!".format(i) in client.out
+            assert f"MYTOOL {i}!!" in client.out
 
     # Test .bats now
     client.save({"conanfile.py": conanfile}, clean_first=True)
@@ -635,14 +643,15 @@ def test_massive_paths(num_deps):
     assert not os.path.isfile(os.path.join(client.current_folder, "conanrunenv.ps1"))
     assert os.path.isfile(os.path.join(client.current_folder, "conanrunenv.bat"))
     for i in range(num_deps):
-        cmd = environment_wrap_command("conanrunenv", client.current_folder,
-                                       "mycompiler{}.bat".format(i))
+        cmd = environment_wrap_command(
+            "conanrunenv", client.current_folder, f"mycompiler{i}.bat"
+        )
         if num_deps > 50:  # to be safe if we change the "num_deps" number
             client.run_command(cmd, assert_error=True)
             # This also fails, but without an error message (in my terminal, it kills the terminal!)
         else:
             client.run_command(cmd)
-            assert "MYTOOL {}!!".format(i) in client.out
+            assert f"MYTOOL {i}!!" in client.out
 
 
 def test_profile_build_env_spaces():
@@ -687,16 +696,25 @@ def test_deactivate_location():
     client.run("install --requires pkg/1.0@ -g VirtualBuildEnv -of=myfolder -s build_type=Release -s arch=x86_64")
 
     source_cmd, script_ext = ("myfolder\\", ".bat") if platform.system() == "Windows" else (". ./myfolder/", ".sh")
-    cmd = "{}conanbuild{}".format(source_cmd, script_ext)
+    cmd = f"{source_cmd}conanbuild{script_ext}"
 
     subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True,
                      cwd=client.current_folder).communicate()
 
-    assert not os.path.exists(os.path.join(client.current_folder,
-                                           "deactivate_conanbuildenv-release-x86_64{}".format(script_ext)))
+    assert not os.path.exists(
+        os.path.join(
+            client.current_folder,
+            f"deactivate_conanbuildenv-release-x86_64{script_ext}",
+        )
+    )
 
-    assert os.path.exists(os.path.join(client.current_folder, "myfolder",
-                                       "deactivate_conanbuildenv-release-x86_64{}".format(script_ext)))
+    assert os.path.exists(
+        os.path.join(
+            client.current_folder,
+            "myfolder",
+            f"deactivate_conanbuildenv-release-x86_64{script_ext}",
+        )
+    )
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Requires sh")

@@ -92,7 +92,9 @@ def test_conanfile_txt(client):
     assert "mycmake/1.0" in client.out
     assert "openssl/1.0" in client.out
     ext = "bat" if platform.system() == "Windows" else "sh"  # TODO: Decide on logic .bat vs .sh
-    cmd = environment_wrap_command("conanbuild", client.current_folder, "mycmake.{}".format(ext))
+    cmd = environment_wrap_command(
+        "conanbuild", client.current_folder, f"mycmake.{ext}"
+    )
     client.run_command(cmd)
 
     assert "MYCMAKE=Release!!" in client.out
@@ -122,8 +124,9 @@ def test_complete(client):
     client.run("install . -s build_type=Debug --build=missing")
     # Run the BUILD environment
     ext = "bat" if platform.system() == "Windows" else "sh"  # TODO: Decide on logic .bat vs .sh
-    cmd = environment_wrap_command("conanbuild", client.current_folder,
-                                   cmd="mycmake.{}".format(ext))
+    cmd = environment_wrap_command(
+        "conanbuild", client.current_folder, cmd=f"mycmake.{ext}"
+    )
     client.run_command(cmd)
     assert "MYCMAKE=Release!!" in client.out
     assert "MYOPENSSL=Release!!" in client.out
@@ -320,8 +323,9 @@ class Lib(ConanFile):
 """
         client.save({CONANFILE: lib})
         client.run("create . --name=Lib --version=1.0 --user=user --channel=channel")
-        self.assertIn("LIB PATH FOR BUILD myotherpath%smyboostpath" % os.pathsep,
-                      client.out)
+        self.assertIn(
+            f"LIB PATH FOR BUILD myotherpath{os.pathsep}myboostpath", client.out
+        )
 
     def test_applyname(self):
         # https://github.com/conan-io/conan/issues/4135
@@ -636,21 +640,21 @@ def test_dependents_new_buildenv():
     client.run("create other --name=other --version=1.0")
     client.run("install consumer")
     result = os.pathsep.join(["myotherprepend", "myboostpath", "myotherpath"])
-    assert "LIB PATH {}".format(result) in client.out
+    assert f"LIB PATH {result}" in client.out
 
     # Now test if we declare in different order, still topological order should be respected
     client.save({"consumer/conanfile.py": consumer.format('"other/1.0", "boost/1.0"')})
     client.run("install consumer")
-    assert "LIB PATH {}".format(result) in client.out
+    assert f"LIB PATH {result}" in client.out
 
     client.run("install consumer -pr=profile_define")
     assert "LIB PATH profilepath" in client.out
     client.run("install consumer -pr=profile_append")
     result = os.pathsep.join(["myotherprepend", "myboostpath", "myotherpath", "profilepath"])
-    assert "LIB PATH {}".format(result) in client.out
+    assert f"LIB PATH {result}" in client.out
     client.run("install consumer -pr=profile_prepend")
     result = os.pathsep.join(["profilepath", "myotherprepend", "myboostpath", "myotherpath"])
-    assert "LIB PATH {}".format(result) in client.out
+    assert f"LIB PATH {result}" in client.out
 
 
 def test_tool_requires_conanfile_txt():

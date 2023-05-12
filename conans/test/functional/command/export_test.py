@@ -16,7 +16,7 @@ class TestRevisionModeSCM:
         conanfile = str(GenConanfile().with_class_attribute('revision_mode = "scm"'))
         commit = t.init_git_repo({'conanfile.py': conanfile})
 
-        t.run(f"export . --name=pkg --version=0.1")
+        t.run("export . --name=pkg --version=0.1")
 
         ref = RecipeReference.loads("pkg/0.1")
         latest_rev = t.cache.get_latest_recipe_reference(ref)
@@ -24,11 +24,11 @@ class TestRevisionModeSCM:
 
         # Now it will fail if dirty
         t.save({"conanfile.py": conanfile + "\n#comment"})
-        t.run(f"export . --name=pkg --version=0.1", assert_error=True)
+        t.run("export . --name=pkg --version=0.1", assert_error=True)
         assert "Can't have a dirty repository using revision_mode='scm' and doing" in t.out
         # Commit to fix
         commit2 = git_add_changes_commit(t.current_folder, msg="fix")
-        t.run(f"export . --name=pkg --version=0.1")
+        t.run("export . --name=pkg --version=0.1")
         latest_rev = t.cache.get_latest_recipe_reference(ref)
         assert latest_rev.revision == commit2
 
@@ -45,13 +45,13 @@ class TestRevisionModeSCM:
         commit_b = git_add_changes_commit(os.path.join(t.current_folder, "pkgb"), msg="fix")
 
         # pkga still gets the initial commit, as it didn't change its contents
-        t.run(f"export pkga --name=pkga --version=0.1")
+        t.run("export pkga --name=pkga --version=0.1")
         ref = RecipeReference.loads("pkga/0.1")
         latest_rev = t.cache.get_latest_recipe_reference(ref)
         assert latest_rev.revision == commit
 
         # but pkgb will get the commit of the new changed folder
-        t.run(f"export pkgb --name=pkgb --version=0.1")
+        t.run("export pkgb --name=pkgb --version=0.1")
         ref = RecipeReference.loads("pkgb/0.1")
         latest_rev = t.cache.get_latest_recipe_reference(ref)
         assert latest_rev.revision == commit_b

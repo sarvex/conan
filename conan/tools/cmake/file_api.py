@@ -85,17 +85,17 @@ class CMakeFileAPI(object):
             assert len(codemodels) == 1
             self._codemodel = loadjs(os.path.join(api.reply_dir, codemodels[0]))
 
-            self._configurations = dict()
+            self._configurations = {}
             for configuration in self._codemodel['configurations']:
                 if configuration["name"] != api.build_type:
                     continue
 
-                self._components = dict()
+                self._components = {}
                 for target in configuration["targets"]:
                     if target['name'] in CMakeFileAPI.SKIP_TARGETS:
                         continue
                     self._components[target["name"]] = \
-                        loadjs(os.path.join(api.reply_dir, target['jsonFile']))
+                                loadjs(os.path.join(api.reply_dir, target['jsonFile']))
 
         @classmethod
         def _name_on_disk2lib(cls, name_on_disk):
@@ -112,7 +112,7 @@ class CMakeFileAPI(object):
                 return name_on_disk[3:-2]
             else:
                 # FIXME: This fails to parse executables
-                raise Exception("don't know how to convert %s" % name_on_disk)
+                raise Exception(f"don't know how to convert {name_on_disk}")
 
         @classmethod
         def _parse_dep_name(cls, name):

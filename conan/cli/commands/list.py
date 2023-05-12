@@ -19,7 +19,7 @@ value_color = Color.CYAN
 
 
 def print_serial(item, indent=None, color_index=None):
-    indent = "" if indent is None else (indent + "  ")
+    indent = "" if indent is None else f"{indent}  "
     color_index = 0 if color_index is None else (color_index + 1)
     color_array = [Color.BRIGHT_BLUE, Color.BRIGHT_GREEN, Color.BRIGHT_WHITE,
                    Color.BRIGHT_YELLOW, Color.BRIGHT_CYAN, Color.BRIGHT_MAGENTA, Color.WHITE]

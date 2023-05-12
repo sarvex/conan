@@ -129,7 +129,7 @@ def test_cache_in_layout(conanfile):
 
     client.save({"conanfile.py": conanfile})
     client.run("create . --name=lib --version=1.0")
-    package_id = re.search(r"lib/1.0:(\S+)", str(client.out)).group(1)
+    package_id = re.search(r"lib/1.0:(\S+)", str(client.out))[1]
     ref = RecipeReference.loads("lib/1.0@")
     pref = PkgReference(ref, package_id)
     sf = client.get_latest_ref_layout(ref).source()
@@ -140,8 +140,8 @@ def test_cache_in_layout(conanfile):
     build_folder = os.path.join(bf, "my_build")
 
     # Check folders match with the declared by the layout
-    assert "Source folder: {}".format(source_folder) in client.out
-    assert "Build folder: {}".format(build_folder) in client.out
+    assert f"Source folder: {source_folder}" in client.out
+    assert f"Build folder: {build_folder}" in client.out
     # Check the source folder
     assert os.path.exists(os.path.join(source_folder, "source.h"))
 
@@ -153,7 +153,7 @@ def test_cache_in_layout(conanfile):
 
     # Search the package in the cache
     client.run("search lib/1.0@")
-    assert "Package_ID: {}".format(package_id) in client.out
+    assert f"Package_ID: {package_id}" in client.out
 
 
 @pytest.mark.xfail(reason="The conan-source command do not handle yet the layout, to do in other PR")
@@ -169,11 +169,11 @@ def test_same_conanfile_local(conanfile):
 
     client.run("install . lib/1.0@ -if=install")
     client.run("source .")
-    assert "Source folder: {}".format(source_folder) in client.out
+    assert f"Source folder: {source_folder}" in client.out
     assert os.path.exists(os.path.join(source_folder, "source.h"))
 
     client.run("build .  -if=install")
-    assert "Build folder: {}".format(build_folder) in client.out
+    assert f"Build folder: {build_folder}" in client.out
     assert os.path.exists(os.path.join(build_folder, "build.lib"))
 
     client.run("package .  -if=install", assert_error=True)

@@ -38,7 +38,7 @@ class TransitiveRequirement:
         self.node = node
 
     def __repr__(self):
-        return "Require: {}, Node: {}".format(repr(self.require), repr(self.node))
+        return f"Require: {repr(self.require)}, Node: {repr(self.node)}"
 
 
 class Node(object):
@@ -123,12 +123,16 @@ class Node(object):
         # First, a check against self, could be a loop-conflict
         # This is equivalent as the Requirement hash and eq methods
         # TODO: Make self.ref always exist, but with name=None if name not defined
-        if self.ref is not None and require.ref.name == self.ref.name:
-            if require.build and (self.context == CONTEXT_HOST or  # switch context
-                                  require.ref.version != self.ref.version):  # or different version
-                pass
-            else:
-                return None, self, self  # First is the require, as it is a loop => None
+        if (
+            self.ref is not None
+            and require.ref.name == self.ref.name
+            and (
+                not require.build
+                or self.context != CONTEXT_HOST
+                and require.ref.version == self.ref.version
+            )
+        ):
+            return None, self, self  # First is the require, as it is a loop => None
 
         # First do a check against the current node dependencies
         prev = self.transitive_deps.get(require)
@@ -188,7 +192,9 @@ class Node(object):
 
     @property
     def pref(self):
-        assert self.ref is not None and self.package_id is not None, "Node %s" % self.recipe
+        assert (
+            self.ref is not None and self.package_id is not None
+        ), f"Node {self.recipe}"
         return PkgReference(self.ref, self.package_id, self.prev, self.pref_timestamp)
 
     def add_edge(self, edge):
@@ -282,9 +288,12 @@ class Overrides:
     @staticmethod
     def deserialize(data):
         result = Overrides()
-        result._overrides = {RecipeReference.loads(k):
-                             set([RecipeReference.loads(e) if e else None for e in v])
-                             for k, v in data.items()}
+        result._overrides = {
+            RecipeReference.loads(k): {
+                RecipeReference.loads(e) if e else None for e in v
+            }
+            for k, v in data.items()
+        }
         return result
 
 
@@ -317,8 +326,7 @@ class DepsGraph(object):
     def ordered_iterate(self):
         ordered = self.by_levels()
         for level in ordered:
-            for node in level:
-                yield node
+            yield from level
 
     def by_levels(self):
         """ order by node degree. The first level will be the one which nodes dont have
@@ -334,7 +342,7 @@ class DepsGraph(object):
             current_level = []
             for o in opened:
                 o_neighs = o.neighbors()
-                if not any(n in opened for n in o_neighs):
+                if all(n not in opened for n in o_neighs):
                     current_level.append(o)
 
             # TODO: SORTING seems only necessary for test order

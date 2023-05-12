@@ -32,7 +32,7 @@ class RestV2Methods(RestCommonMethods):
         data = self.get_json(url)
         # Discarding (.keys()) still empty metadata for files
         # and make sure the paths like metadata/sign/signature are normalized to /
-        data["files"] = list(d.replace("\\", "/") for d in data["files"].keys())
+        data["files"] = [d.replace("\\", "/") for d in data["files"].keys()]
         return data
 
     def get_recipe(self, ref, dest_folder):
@@ -45,8 +45,7 @@ class RestV2Methods(RestCommonMethods):
         # If we didn't indicated reference, server got the latest, use absolute now, it's safer
         urls = {fn: self.router.recipe_file(ref, fn) for fn in files}
         self._download_and_save_files(urls, dest_folder, files, parallel=True)
-        ret = {fn: os.path.join(dest_folder, fn) for fn in files}
-        return ret
+        return {fn: os.path.join(dest_folder, fn) for fn in files}
 
     def get_recipe_sources(self, ref, dest_folder):
         # If revision not specified, check latest
@@ -62,8 +61,7 @@ class RestV2Methods(RestCommonMethods):
         # If we didn't indicated reference, server got the latest, use absolute now, it's safer
         urls = {fn: self.router.recipe_file(ref, fn) for fn in files}
         self._download_and_save_files(urls, dest_folder, files)
-        ret = {fn: os.path.join(dest_folder, fn) for fn in files}
-        return ret
+        return {fn: os.path.join(dest_folder, fn) for fn in files}
 
     def get_package(self, pref, dest_folder):
         url = self.router.package_snapshot(pref)
@@ -75,8 +73,7 @@ class RestV2Methods(RestCommonMethods):
         # If we didn't indicated reference, server got the latest, use absolute now, it's safer
         urls = {fn: self.router.package_file(pref, fn) for fn in files}
         self._download_and_save_files(urls, dest_folder, files)
-        ret = {fn: os.path.join(dest_folder, fn) for fn in files}
-        return ret
+        return {fn: os.path.join(dest_folder, fn) for fn in files}
 
     @staticmethod
     def _is_dir(path, files):
@@ -119,7 +116,7 @@ class RestV2Methods(RestCommonMethods):
         for filename in sorted(files):
             # As the filenames are sorted, the last one is always "conanmanifest.txt"
             if output and not output.is_terminal:
-                msg = "-> %s" % filename
+                msg = f"-> {filename}"
                 output.info(msg)
             resource_url = urls[filename]
             try:
@@ -134,8 +131,9 @@ class RestV2Methods(RestCommonMethods):
                 failed.append(filename)
 
         if failed:
-            raise ConanException("Execute upload again to retry upload the failed files: %s"
-                                 % ", ".join(failed))
+            raise ConanException(
+                f'Execute upload again to retry upload the failed files: {", ".join(failed)}'
+            )
 
     def _download_and_save_files(self, urls, dest_folder, files, parallel=False):
         # Take advantage of filenames ordering, so that conan_package.tgz and conan_export.tgz

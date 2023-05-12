@@ -135,5 +135,5 @@ def test_apple_meson_toolchain_cross_compiling_and_objective_c(arch, os_, os_ver
 
     xcrun = XCRun(None, sdk)
     lipo = xcrun.find('lipo')
-    t.run_command('"%s" -info "%s"' % (lipo, demo))
-    assert "architecture: %s" % _to_apple_arch(arch) in t.out
+    t.run_command(f'"{lipo}" -info "{demo}"')
+    assert f"architecture: {_to_apple_arch(arch)}" in t.out

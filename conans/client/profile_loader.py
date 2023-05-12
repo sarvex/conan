@@ -141,8 +141,7 @@ class ProfileLoader:
     def load_profile(self, profile_name, cwd=None):
         # TODO: This can be made private, only used in testing now
         cwd = cwd or os.getcwd()
-        profile = self._load_profile(profile_name, cwd)
-        return profile
+        return self._load_profile(profile_name, cwd)
 
     def _load_profile(self, profile_name, cwd):
         """ Will look for "profile_name" in disk if profile_name is absolute path,
@@ -170,7 +169,7 @@ class ProfileLoader:
         try:
             return self._recurse_load_profile(text, profile_path)
         except ConanException as exc:
-            raise ConanException("Error reading '%s' profile: %s" % (profile_name, exc))
+            raise ConanException(f"Error reading '{profile_name}' profile: {exc}")
 
     def _recurse_load_profile(self, text, profile_path):
         """ Parse and return a Profile object from a text config like representation.
@@ -194,7 +193,7 @@ class ProfileLoader:
         except ConanException:
             raise
         except Exception as exc:
-            raise ConanException("Error parsing the profile text file: %s" % str(exc))
+            raise ConanException(f"Error parsing the profile text file: {str(exc)}")
 
     def get_profile_path(self, profile_name, cwd, exists=True):
 
@@ -218,7 +217,7 @@ class ProfileLoader:
             if not os.path.isfile(profile_path):
                 profile_path = os.path.abspath(os.path.join(cwd, profile_name))
             if not os.path.isfile(profile_path):
-                raise ConanException("Profile not found: %s" % profile_name)
+                raise ConanException(f"Profile not found: {profile_name}")
         return profile_path
 
 
@@ -282,8 +281,9 @@ class _ProfileValueParser(object):
 
         # Create or update the profile
         base_profile = base_profile or Profile()
-        current_system_tools = {r.name: r for r in base_profile.system_tools}
-        current_system_tools.update({r.name: r for r in system_tools})
+        current_system_tools = {r.name: r for r in base_profile.system_tools} | {
+            r.name: r for r in system_tools
+        }
         base_profile.system_tools = list(current_system_tools.values())
 
         base_profile.settings.update(settings)
@@ -292,8 +292,7 @@ class _ProfileValueParser(object):
         for pattern, refs in tool_requires.items():
             # If the same package, different version is added, the latest version prevail
             current = base_profile.tool_requires.setdefault(pattern, [])
-            current_dict = {r.name: r for r in current}
-            current_dict.update({r.name: r for r in refs})
+            current_dict = {r.name: r for r in current} | {r.name: r for r in refs}
             current[:] = list(current_dict.values())
         if options is not None:
             base_profile.options.update_options(options)
@@ -312,10 +311,7 @@ class _ProfileValueParser(object):
             # FIXME CHECKS OF DUPLICATED?
             for br_line in doc.tool_requires.splitlines():
                 tokens = br_line.split(":", 1)
-                if len(tokens) == 1:
-                    pattern, req_list = "*", br_line
-                else:
-                    pattern, req_list = tokens
+                pattern, req_list = ("*", br_line) if len(tokens) == 1 else tokens
                 refs = [RecipeReference.loads(r.strip()) for r in req_list.split(",")]
                 result.setdefault(pattern, []).extend(refs)
         return result
@@ -341,7 +337,7 @@ class _ProfileValueParser(object):
             if not setting or setting.startswith("#"):
                 continue
             if "=" not in setting:
-                raise ConanException("Invalid setting line '%s'" % setting)
+                raise ConanException(f"Invalid setting line '{setting}'")
             package_name, name, value = get_package_name_value(setting)
             if package_name:
                 package_settings.setdefault(package_name, OrderedDict())[name] = value
@@ -360,7 +356,7 @@ def _profile_parse_args(settings, options, conf):
         for item in items:
             chunks = item.split("=", 1)
             if len(chunks) != 2:
-                raise ConanException("Invalid input '%s', use 'name=value'" % item)
+                raise ConanException(f"Invalid input '{item}', use 'name=value'")
         return [(item[0], item[1]) for item in [item.split("=", 1) for item in items]]
 
     def _get_simple_and_package_tuples(items):

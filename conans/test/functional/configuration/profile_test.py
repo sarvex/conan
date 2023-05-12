@@ -121,9 +121,9 @@ class ProfileTest(unittest.TestCase):
         if path is None:
             # Not good practice to introduce temp_folder() in the expand because it randomize
             # the test names causing issues to split them in N processes
-            path = temp_folder() + "/"
+            path = f"{temp_folder()}/"
         self.client.save({CONANFILE: conanfile_scope_env})
-        self.client.run('install . -pr "%sscopes_env"' % path, assert_error=True)
+        self.client.run(f'install . -pr "{path}scopes_env"', assert_error=True)
         self.assertIn("ERROR: Profile not found:", self.client.out)
         self.assertIn("scopes_env", self.client.out)
 
@@ -177,14 +177,14 @@ class ProfileTest(unittest.TestCase):
         self.client.run("install . --build missing -pr vs_12_86")
         info = self.client.out
         for setting, value in profile_settings.items():
-            self.assertIn("%s=%s" % (setting, value), info)
+            self.assertIn(f"{setting}={value}", info)
 
         # Try to override some settings in install command
         self.client.run("install . --build missing -pr vs_12_86 -s compiler.version=191")
         info = self.client.out
         for setting, value in profile_settings.items():
             if setting != "compiler.version":
-                self.assertIn("%s=%s" % (setting, value), info)
+                self.assertIn(f"{setting}={value}", info)
             else:
                 self.assertIn("compiler.version=191", info)
 
@@ -377,7 +377,7 @@ class DefaultNameConan(ConanFile):
         self._assert_env_variable_printed("ONE_VAR", "PACKAGE VALUE")
 
     def _assert_env_variable_printed(self, name, value):
-        self.assertIn("%s=%s" % (name, value), self.client.out)
+        self.assertIn(f"{name}={value}", self.client.out)
 
     def test_info_with_profiles(self):
 
@@ -606,7 +606,7 @@ def test_profile_from_temp_absolute_path():
                  "current/conanfile.txt": ""})
     profile_path = os.path.join(client.current_folder, "profiles", "default")
     recipe_path = os.path.join(client.current_folder, "current", "conanfile.txt")
-    client.run('install "{}" -pr="{}"'.format(recipe_path, profile_path))
+    client.run(f'install "{recipe_path}" -pr="{profile_path}"')
     assert "os=AIX" in client.out
 
 
@@ -697,9 +697,10 @@ def test_create_and_priority_of_consumer_specific_setting():
     client.run("create . -s &:build_type=Release -s foo*:build_type=Debug ")
     assert "I'm foo and my build type is Debug" in client.out
 
-    # With test_package also works
-    test = str(GenConanfile().with_test("pass").with_setting("build_type"))
-    test += configure
+    test = (
+        str(GenConanfile().with_test("pass").with_setting("build_type"))
+        + configure
+    )
     client.save({"test_package/conanfile.py": test})
     client.run("create . -s &:build_type=Debug -s build_type=Release")
     assert "I'm foo and my build type is Debug" in client.out

@@ -26,8 +26,7 @@ class Remote:
                self.disabled == other.disabled
 
     def __str__(self):
-        return "{}: {} [Verify SSL: {}, Enabled: {}]".format(self.name, self.url, self.verify_ssl,
-                                                             not self.disabled)
+        return f"{self.name}: {self.url} [Verify SSL: {self.verify_ssl}, Enabled: {not self.disabled}]"
 
     def __repr__(self):
         return str(self)

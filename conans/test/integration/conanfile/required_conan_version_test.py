@@ -21,11 +21,15 @@ class RequiredConanVersionTest(unittest.TestCase):
             """)
         client.save({"conanfile.py": conanfile})
         client.run("export . --name=pkg --version=1.0", assert_error=True)
-        self.assertIn("Current Conan version (%s) does not satisfy the defined one (>=100.0)"
-                      % __version__, client.out)
+        self.assertIn(
+            f"Current Conan version ({__version__}) does not satisfy the defined one (>=100.0)",
+            client.out,
+        )
         client.run("source . ", assert_error=True)
-        self.assertIn("Current Conan version (%s) does not satisfy the defined one (>=100.0)"
-                      % __version__, client.out)
+        self.assertIn(
+            f"Current Conan version ({__version__}) does not satisfy the defined one (>=100.0)",
+            client.out,
+        )
         with mock.patch("conans.client.conf.required_version.client_version", "101.0"):
             client.run("export . --name=pkg --version=1.0")
 
@@ -33,8 +37,10 @@ class RequiredConanVersionTest(unittest.TestCase):
             client.run("export . --name=pkg --version=1.0")
 
         client.run("install --requires=pkg/1.0@", assert_error=True)
-        self.assertIn("Current Conan version (%s) does not satisfy the defined one (>=100.0)"
-                      % __version__, client.out)
+        self.assertIn(
+            f"Current Conan version ({__version__}) does not satisfy the defined one (>=100.0)",
+            client.out,
+        )
 
     def test_required_conan_version_with_loading_issues(self):
         # https://github.com/conan-io/conan/issues/11239
@@ -49,8 +55,10 @@ class RequiredConanVersionTest(unittest.TestCase):
                     """)
         client.save({"conanfile.py": conanfile})
         client.run("export . --name=pkg --version=1.0", assert_error=True)
-        self.assertIn("Current Conan version (%s) does not satisfy the defined one (>=100.0)"
-                      % __version__, client.out)
+        self.assertIn(
+            f"Current Conan version ({__version__}) does not satisfy the defined one (>=100.0)",
+            client.out,
+        )
 
         # Assigning required_conan_version without spaces
         conanfile = textwrap.dedent("""
@@ -63,8 +71,10 @@ class RequiredConanVersionTest(unittest.TestCase):
                             """)
         client.save({"conanfile.py": conanfile})
         client.run("export . --name=pkg --version=1.0", assert_error=True)
-        self.assertIn("Current Conan version (%s) does not satisfy the defined one (>=100.0)"
-                      % __version__, client.out)
+        self.assertIn(
+            f"Current Conan version ({__version__}) does not satisfy the defined one (>=100.0)",
+            client.out,
+        )
 
         # If the range is correct, everything works, of course
         conanfile = textwrap.dedent("""
@@ -94,8 +104,10 @@ class RequiredConanVersionTest(unittest.TestCase):
                     """)
         client.save({"conanfile.py": conanfile})
         client.run("export . --name=pkg --version=1.0", assert_error=True)
-        self.assertIn("Current Conan version (%s) does not satisfy the defined one (>=10.0)"
-                      % __version__, client.out)
+        self.assertIn(
+            f"Current Conan version ({__version__}) does not satisfy the defined one (>=10.0)",
+            client.out,
+        )
 
     def test_commented_out_required_conan_version(self):
         """
@@ -112,8 +124,10 @@ class RequiredConanVersionTest(unittest.TestCase):
                     """)
         client.save({"conanfile.py": conanfile})
         client.run("export . --name=pkg --version=10.0", assert_error=True)
-        self.assertNotIn("Current Conan version (%s) does not satisfy the defined one (>=1.0)"
-                      % __version__, client.out)
+        self.assertNotIn(
+            f"Current Conan version ({__version__}) does not satisfy the defined one (>=1.0)",
+            client.out,
+        )
 
         client = TestClient()
         conanfile = textwrap.dedent("""
@@ -125,8 +139,10 @@ class RequiredConanVersionTest(unittest.TestCase):
                     """)
         client.save({"conanfile.py": conanfile})
         client.run("export . --name=pkg --version=1.0", assert_error=True)
-        self.assertNotIn("Current Conan version (%s) does not satisfy the defined one (>=10.0)"
-                         % __version__, client.out)
+        self.assertNotIn(
+            f"Current Conan version ({__version__}) does not satisfy the defined one (>=10.0)",
+            client.out,
+        )
 
     def test_required_conan_version_invalid_syntax(self):
         """ required_conan_version used to warn of mismatching versions if spaces were present,

@@ -25,11 +25,13 @@ class FileDownloader:
 
         if os.path.exists(file_path):
             if overwrite:
-                self._output.warning("file '%s' already exists, overwriting" % file_path)
+                self._output.warning(f"file '{file_path}' already exists, overwriting")
             else:
                 # Should not happen, better to raise, probably we had to remove
                 # the dest folder before
-                raise ConanException("Error, the file to download already exists: '%s'" % file_path)
+                raise ConanException(
+                    f"Error, the file to download already exists: '{file_path}'"
+                )
 
         try:
             for counter in range(retry + 1):
@@ -42,10 +44,9 @@ class FileDownloader:
                 except ConanException as exc:
                     if counter == retry:
                         raise
-                    else:
-                        self._output.error(exc)
-                        self._output.info(f"Waiting {retry_wait} seconds to retry...")
-                        time.sleep(retry_wait)
+                    self._output.error(exc)
+                    self._output.info(f"Waiting {retry_wait} seconds to retry...")
+                    time.sleep(retry_wait)
 
             self.check_checksum(file_path, md5, sha1, sha256)
         except Exception:
@@ -74,11 +75,11 @@ class FileDownloader:
             response = self._requester.get(url, stream=True, verify=verify_ssl, auth=auth,
                                            headers=headers)
         except Exception as exc:
-            raise ConanException("Error downloading file %s: '%s'" % (url, exc))
+            raise ConanException(f"Error downloading file {url}: '{exc}'")
 
         if not response.ok:
             if response.status_code == 404:
-                raise NotFoundException("Not found: %s" % url)
+                raise NotFoundException(f"Not found: {url}")
             elif response.status_code == 403:
                 if auth is None or (hasattr(auth, "token") and auth.token is None):
                     # TODO: This is a bit weird, why this conversion? Need to investigate
@@ -92,10 +93,10 @@ class FileDownloader:
             if range_start:
                 content_range = response.headers.get("Content-Range", "")
                 match = re.match(r"^bytes (\d+)-(\d+)/(\d+)", content_range)
-                if not match or range_start != int(match.group(1)):
+                if not match or range_start != int(match[1]):
                     raise ConanException("Error in resumed download from %s\n"
                                          "Incorrect Content-Range header %s" % (url, content_range))
-                return int(match.group(3))
+                return int(match[3])
             else:
                 total_size = response.headers.get('Content-Length') or len(response.content)
                 return int(total_size)
@@ -123,8 +124,9 @@ class FileDownloader:
                         and response.headers.get("Accept-Ranges") == "bytes"):
                     self._download_file(url, auth, headers, file_path, verify_ssl, try_resume=True)
                 else:
-                    raise ConanException("Transfer interrupted before complete: %s < %s"
-                                         % (total_downloaded_size, total_length))
+                    raise ConanException(
+                        f"Transfer interrupted before complete: {total_downloaded_size} < {total_length}"
+                    )
         except Exception as e:
             # If this part failed, it means problems with the connection to server
             raise ConanConnectionError("Download failed, check server, possibly try again\n%s"

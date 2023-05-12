@@ -34,14 +34,14 @@ class ExportPkgTest(unittest.TestCase):
 
         client.run("build pkga -bf=build")
         client.run("export-pkg pkga ")
-        package_id = re.search(r"Packaging to (\S+)", str(client.out)).group(1)
+        package_id = re.search(r"Packaging to (\S+)", str(client.out))[1]
         self.assertIn(f"conanfile.py (pkga/0.1): Package '{package_id}' created", client.out)
 
         # we can export-pkg without the dependencies binaries if we need to optimize
         client.run("remove pkgc*:* -c")
         client.run("remove pkgb*:* -c")
         client.run("export-pkg pkga --skip-binaries")
-        package_id = re.search(r"Packaging to (\S+)", str(client.out)).group(1)
+        package_id = re.search(r"Packaging to (\S+)", str(client.out))[1]
         self.assertIn(f"conanfile.py (pkga/0.1): Package '{package_id}' created", client.out)
 
     def test_package_folder_errors(self):
@@ -129,8 +129,8 @@ class TestConan(ConanFile):
                      "lib/bye.txt": ""}, clean_first=True)
         client.run("export-pkg . --user=lasote --channel=stable -s os=Windows")
         rrev = client.exported_recipe_revision()
-        package_id = re.search(r"Packaging to (\S+)", str(client.out)).group(1)
-        prev = re.search(r"Created package revision (\S+)", str(client.out)).group(1)
+        package_id = re.search(r"Packaging to (\S+)", str(client.out))[1]
+        prev = re.search(r"Created package revision (\S+)", str(client.out))[1]
         pref = PkgReference.loads(f"hello/0.1@lasote/stable#{rrev}:{package_id}#{prev}")
         package_folder = client.cache.pkg_layout(pref).package()
         inc = os.path.join(package_folder, "inc")
@@ -160,8 +160,8 @@ class TestConan(ConanFile):
         client.run("export-pkg . --name=hello --version=0.1 --user=lasote --channel=stable "
                    "-s os=Windows")
         rrev = client.exported_recipe_revision()
-        package_id = re.search(r"Packaging to (\S+)", str(client.out)).group(1)
-        prev = re.search(r"Created package revision (\S+)", str(client.out)).group(1)
+        package_id = re.search(r"Packaging to (\S+)", str(client.out))[1]
+        prev = re.search(r"Created package revision (\S+)", str(client.out))[1]
         pref = PkgReference.loads(f"hello/0.1@lasote/stable#{rrev}:{package_id}#{prev}")
 
         package_folder = client.cache.pkg_layout(pref).package()
@@ -200,8 +200,8 @@ class TestConan(ConanFile):
                      "build/lib/bye.txt": ""})
         client.run("export-pkg . --user=lasote --channel=stable -s os=Windows")
         rrev = client.exported_recipe_revision()
-        package_id = re.search(r"Packaging to (\S+)", str(client.out)).group(1)
-        prev = re.search(r"Created package revision (\S+)", str(client.out)).group(1)
+        package_id = re.search(r"Packaging to (\S+)", str(client.out))[1]
+        prev = re.search(r"Created package revision (\S+)", str(client.out))[1]
         pref = PkgReference.loads(f"hello/0.1@lasote/stable#{rrev}:{package_id}#{prev}")
         package_folder = client.cache.pkg_layout(pref).package()
         inc = os.path.join(package_folder, "inc")
@@ -257,8 +257,8 @@ class TestConan(ConanFile):
         client.save({"conanfile.py": GenConanfile()})
         client.run("create . --name=hello --version=0.1 --user=lasote --channel=stable")
         conanfile = GenConanfile().with_name("hello1").with_version("0.1")\
-                                  .with_import("from conan.tools.files import copy, collect_libs") \
-                                  .with_require("hello/0.1@lasote/stable")
+                                      .with_import("from conan.tools.files import copy, collect_libs") \
+                                      .with_require("hello/0.1@lasote/stable")
 
         conanfile = str(conanfile) + """\n    def package_info(self):
         self.cpp_info.libs = collect_libs(self)
@@ -272,8 +272,9 @@ class TestConan(ConanFile):
         client.save({"Release_x86/lib/libmycoollib.a": ""})
         settings = ('-s os=Windows -s compiler=gcc -s compiler.version=4.9 '
                     '-s compiler.libcxx=libstdc++ -s build_type=Release -s arch=x86')
-        client.run("export-pkg . --name=hello1 --version=0.1 --user=lasote --channel=stable %s"
-                   % settings)
+        client.run(
+            f"export-pkg . --name=hello1 --version=0.1 --user=lasote --channel=stable {settings}"
+        )
 
         # consumer
         consumer = """
@@ -316,7 +317,7 @@ class TestConan(ConanFile):
                      "src/header.h": "contents"})
         client.run("export-pkg . -s os=Windows")
         rrev = client.exported_recipe_revision()
-        prev = re.search(r"Created package revision (\S+)", str(client.out)).group(1)
+        prev = re.search(r"Created package revision (\S+)", str(client.out))[1]
         pref = PkgReference.loads(f"hello/0.1#{rrev}:{NO_SETTINGS_PACKAGE_ID}#{prev}")
         package_folder = client.cache.pkg_layout(pref).package()
         header = os.path.join(package_folder, "include/header.h")

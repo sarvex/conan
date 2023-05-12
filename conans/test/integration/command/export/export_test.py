@@ -185,7 +185,7 @@ class TestConan(ConanFile):
     def test_filename(self, filename):
         client = TestClient()
         client.save({filename: GenConanfile("hello", "1.2")})
-        client.run("export %s --user=user --channel=stable" % filename)
+        client.run(f"export {filename} --user=user --channel=stable")
         self.assertIn("hello/1.2@user/stable: Exported", client.out)
         ref = RecipeReference("hello", "1.2", "user", "stable")
         latest_rrev = client.cache.get_latest_recipe_reference(ref)
@@ -261,9 +261,11 @@ class ExportTest(unittest.TestCase):
         reg_path = self.client.cache.ref_layout(latest_rrev).export()
         manif = FileTreeManifest.load(reg_path)
 
-        self.assertIn('%s: Exported' % str(self.ref),
-                      self.client.out)
-        self.assertIn('%s: Exported to cache folder: %s' % (str(self.ref), reg_path), self.client.out)
+        self.assertIn(f'{str(self.ref)}: Exported', self.client.out)
+        self.assertIn(
+            f'{str(self.ref)}: Exported to cache folder: {reg_path}',
+            self.client.out,
+        )
         self.assertTrue(os.path.exists(reg_path))
 
         for name in list(self.files.keys()):

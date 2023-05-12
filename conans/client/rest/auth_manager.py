@@ -38,8 +38,7 @@ class ConanApiAuthManager(object):
             return self._authenticate(remote, *args, **kwargs)
 
         try:
-            ret = getattr(rest_client, method_name)(*args, **kwargs)
-            return ret
+            return getattr(rest_client, method_name)(*args, **kwargs)
         except ForbiddenException as e:
             raise ForbiddenException(f"Permission denied for user: '{user}': {e}")
         except AuthenticationException:
@@ -79,7 +78,7 @@ class ConanApiAuthManager(object):
                 if user is None:
                     out.error('Wrong user or password')
                 else:
-                    out.error('Wrong password for user "%s"' % user)
+                    out.error(f'Wrong password for user "{user}"')
                     out.info('You can change username with "conan remote login <remote> <username>"')
             else:
                 return self.call_rest_api_method(remote, method_name, *args, **kwargs)
@@ -111,7 +110,7 @@ class ConanApiAuthManager(object):
         if user is None:  # The user is already in DB, just need the password
             prev_user = self._localdb.get_username(remote.url)
             if prev_user is None:
-                raise ConanException("User for remote '%s' is not defined" % remote.name)
+                raise ConanException(f"User for remote '{remote.name}' is not defined")
             else:
                 user = prev_user
         try:

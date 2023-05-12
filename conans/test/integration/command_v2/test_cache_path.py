@@ -73,7 +73,7 @@ def test_cache_path_exist_errors(created_package):
     # TODO: Improve this error message
     assert "ERROR: No entry for recipe 'foo/1.0#rev'" in t.out
 
-    t.run(f"cache path foo/1.0:pid1", assert_error=True)
+    t.run("cache path foo/1.0:pid1", assert_error=True)
     assert f"ERROR: 'foo/1.0#{recipe_revision}:pid1' not found in cache" in t.out
 
     t.run(f"cache path foo/1.0#{recipe_revision}:pid1", assert_error=True)

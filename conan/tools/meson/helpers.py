@@ -73,13 +73,12 @@ def to_meson_machine(machine_os, machine_arch):
     default_cpu_tuple = (machine_arch.lower(), machine_arch.lower(), 'little')
     cpu_tuple = _meson_cpu_family_map.get(machine_arch, default_cpu_tuple)
     cpu_family, cpu, endian = cpu_tuple[0], cpu_tuple[1], cpu_tuple[2]
-    context = {
+    return {
         'system': system,
         'cpu_family': cpu_family,
         'cpu': cpu,
         'endian': endian,
     }
-    return context
 
 
 def to_meson_value(value):
@@ -90,11 +89,11 @@ def to_meson_value(value):
     """
     # https://mesonbuild.com/Machine-files.html#data-types
     if isinstance(value, str):
-        return "'%s'" % value
+        return f"'{value}'"
     elif isinstance(value, bool):
         return 'true' if value else "false"
     elif isinstance(value, list):
-        return '[%s]' % ', '.join([str(to_meson_value(val)) for val in value])
+        return f"[{', '.join([str(to_meson_value(val)) for val in value])}]"
     return value
 
 
@@ -107,11 +106,10 @@ def to_cppstd_flag(compiler, compiler_version, cppstd):
     :param cppstd: ``str`` cppstd version.
     :return: ``str`` cppstd flag.
     """
-    if compiler == "msvc":
-        # Meson's logic with 'vc++X' vs 'c++X' is possibly a little outdated.
-        # Presumably the intent is 'vc++X' is permissive and 'c++X' is not,
-        # but '/permissive-' is the default since 16.8.
-        flag = cppstd_msvc_flag(compiler_version, cppstd)
-        return 'v%s' % flag if flag else None
-    else:
+    if compiler != "msvc":
         return _cppstd_map.get(cppstd)
+    # Meson's logic with 'vc++X' vs 'c++X' is possibly a little outdated.
+    # Presumably the intent is 'vc++X' is permissive and 'c++X' is not,
+    # but '/permissive-' is the default since 16.8.
+    flag = cppstd_msvc_flag(compiler_version, cppstd)
+    return f'v{flag}' if flag else None

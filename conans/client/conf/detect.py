@@ -16,21 +16,17 @@ def _gcc_compiler(compiler_exe="gcc"):
     try:
         if platform.system() == "Darwin":
             # In Mac OS X check if gcc is a fronted using apple-clang
-            _, out = detect_runner("%s --version" % compiler_exe)
+            _, out = detect_runner(f"{compiler_exe} --version")
             out = out.lower()
             if "clang" in out:
                 return None
 
-        ret, out = detect_runner('%s -dumpversion' % compiler_exe)
+        ret, out = detect_runner(f'{compiler_exe} -dumpversion')
         if ret != 0:
             return None
-        compiler = "gcc"
-        installed_version = re.search(r"([0-9]+(\.[0-9])?)", out).group()
-        # Since GCC 7.1, -dumpversion return the major version number
-        # only ("7"). We must use -dumpfullversion to get the full version
-        # number ("7.1.1").
-        if installed_version:
-            ConanOutput().success("Found %s %s" % (compiler, installed_version))
+        if installed_version := re.search(r"([0-9]+(\.[0-9])?)", out).group():
+            compiler = "gcc"
+            ConanOutput().success(f"Found {compiler} {installed_version}")
             return compiler, installed_version
     except Exception:
         return None
@@ -38,16 +34,15 @@ def _gcc_compiler(compiler_exe="gcc"):
 
 def _clang_compiler(compiler_exe="clang"):
     try:
-        ret, out = detect_runner('%s --version' % compiler_exe)
+        ret, out = detect_runner(f'{compiler_exe} --version')
         if ret != 0:
             return None
         if "Apple" in out:
             compiler = "apple-clang"
         elif "clang version" in out:
             compiler = "clang"
-        installed_version = re.search(r"([0-9]+\.[0-9])", out).group()
-        if installed_version:
-            ConanOutput().success("Found %s %s" % (compiler, installed_version))
+        if installed_version := re.search(r"([0-9]+\.[0-9])", out).group():
+            ConanOutput().success(f"Found {compiler} {installed_version}")
             return compiler, installed_version
     except Exception:
         return None
@@ -55,15 +50,15 @@ def _clang_compiler(compiler_exe="clang"):
 
 def _sun_cc_compiler(compiler_exe="cc"):
     try:
-        _, out = detect_runner('%s -V' % compiler_exe)
-        compiler = "sun-cc"
+        _, out = detect_runner(f'{compiler_exe} -V')
         installed_version = re.search(r"Sun C.*([0-9]+\.[0-9]+)", out)
         if installed_version:
-            installed_version = installed_version.group(1)
+            installed_version = installed_version[1]
         else:
             installed_version = re.search(r"([0-9]+\.[0-9]+)", out).group()
         if installed_version:
-            ConanOutput().success("Found %s %s" % (compiler, installed_version))
+            compiler = "sun-cc"
+            ConanOutput().success(f"Found {compiler} {installed_version}")
             return compiler, installed_version
     except Exception:
         return None
@@ -84,7 +79,7 @@ def _get_default_compiler():
     cc = os.environ.get("CC", "")
     cxx = os.environ.get("CXX", "")
     if cc or cxx:  # Env defined, use them
-        output.info("CC and CXX: %s, %s " % (cc or "None", cxx or "None"))
+        output.info(f'CC and CXX: {cc or "None"}, {cxx or "None"} ')
         command = cc or cxx
         if "clang" in command.lower():
             return _clang_compiler(command)
@@ -97,7 +92,7 @@ def _get_default_compiler():
         if platform.system() == "SunOS" and command.lower() == "cc":
             return _sun_cc_compiler(command)
         # I am not able to find its version
-        output.error("Not able to automatically detect '%s' version" % command)
+        output.error(f"Not able to automatically detect '{command}' version")
         return None
 
     vs = cc = sun_cc = None
@@ -163,13 +158,13 @@ def _detect_gcc_libcxx(version, executable):
     old_path = os.getcwd()
     os.chdir(t)
     try:
-        error, out_str = detect_runner("%s main.cpp -std=c++11" % executable)
+        error, out_str = detect_runner(f"{executable} main.cpp -std=c++11")
         if error:
             if "using libstdc++" in out_str:
                 output.info("gcc C++ standard library: libstdc++")
                 return "libstdc++"
             # Other error, but can't know, lets keep libstdc++11
-            output.warning("compiler.libcxx check error: %s" % out_str)
+            output.warning(f"compiler.libcxx check error: {out_str}")
             output.warning("Couldn't deduce compiler.libcxx for gcc>=5.1, assuming libstdc++11")
         else:
             output.info("gcc C++ standard library: libstdc++11")
@@ -246,10 +241,9 @@ def _get_solaris_architecture():
 
 
 def _get_aix_conf(options=None):
-    options = " %s" % options if options else ""
+    options = f" {options}" if options else ""
     try:
-        ret = check_output_runner("getconf%s" % options).strip()
-        return ret
+        return check_output_runner(f"getconf{options}").strip()
     except Exception:
         return None
 
@@ -257,8 +251,7 @@ def _get_aix_conf(options=None):
 def _get_aix_architecture():
     processor = platform.processor()
     if "powerpc" in processor:
-        kernel_bitness = _get_aix_conf("KERNEL_BITMODE")
-        if kernel_bitness:
+        if kernel_bitness := _get_aix_conf("KERNEL_BITMODE"):
             return "ppc64" if kernel_bitness == "64" else "ppc32"
     elif "rs6000" in processor:
         return "ppc32"
@@ -342,9 +335,7 @@ def _detect_os_arch(result):
         the_os = "Macos"
     result.append(("os", the_os))
 
-    arch = _detected_architecture()
-
-    if arch:
+    if arch := _detected_architecture():
         if arch.startswith('arm'):
             settings = Settings.loads(get_default_settings_yml())
             defined_architectures = settings.arch.values_range
@@ -376,12 +367,13 @@ def detect_defaults_settings():
 
 def _cppstd_default(compiler, compiler_version):
     assert isinstance(compiler_version, Version)
-    default = {"gcc": _gcc_cppstd_default(compiler_version),
-               "clang": _clang_cppstd_default(compiler_version),
-               "apple-clang": "gnu98",
-               "msvc": _visual_cppstd_default(compiler_version),
-               "mcst-lcc": _mcst_lcc_cppstd_default(compiler_version)}.get(str(compiler), None)
-    return default
+    return {
+        "gcc": _gcc_cppstd_default(compiler_version),
+        "clang": _clang_cppstd_default(compiler_version),
+        "apple-clang": "gnu98",
+        "msvc": _visual_cppstd_default(compiler_version),
+        "mcst-lcc": _mcst_lcc_cppstd_default(compiler_version),
+    }.get(str(compiler), None)
 
 
 def _clang_cppstd_default(compiler_version):
@@ -398,9 +390,7 @@ def _gcc_cppstd_default(compiler_version):
 
 
 def _visual_cppstd_default(compiler_version):
-    if compiler_version >= "190":  # VS 2015 update 3 only
-        return "14"
-    return None
+    return "14" if compiler_version >= "190" else None
 
 
 def _intel_visual_cppstd_default(_):

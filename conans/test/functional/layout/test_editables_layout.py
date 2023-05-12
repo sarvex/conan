@@ -10,8 +10,9 @@ def test_cpp_info_editable():
 
     client = TestClient()
 
-    conan_hello = str(GenConanfile())
-    conan_hello += """
+    conan_hello = (
+        str(GenConanfile())
+        + """
     def layout(self):
         self.folders.source = "my_sources"
         self.folders.build = "my_build"
@@ -48,7 +49,7 @@ def test_cpp_info_editable():
         # when editable: This one WONT be discarded as has not been declared in the editables layout
         self.cpp_info.cflags.append("my_c_flag")
      """
-
+    )
     client.save({"conanfile.py": conan_hello})
     client.run("create . --name=hello --version=1.0")
     rrev = client.exported_recipe_revision()
@@ -117,8 +118,9 @@ def test_cpp_info_components_editable():
 
     client = TestClient()
 
-    conan_hello = str(GenConanfile())
-    conan_hello += """
+    conan_hello = (
+        str(GenConanfile())
+        + """
     def layout(self):
         self.folders.source = "my_sources"
         self.folders.build = "my_build"
@@ -173,7 +175,7 @@ def test_cpp_info_components_editable():
         # when editable: This one WONT be discarded as has not been declared in the editables layout
         self.cpp_info.components["var"].cflags.append("my_c_flag_var")
      """
-
+    )
     client.save({"conanfile.py": conan_hello})
     client.run("create . --name=hello --version=1.0")
     rrev = client.exported_recipe_revision()

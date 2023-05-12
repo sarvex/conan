@@ -40,7 +40,7 @@ def _get_local_infos_min(server_store, ref, look_in_all_rrevs):
                 # From Conan 1.48 the conaninfo.txt is sent raw.
                 result[package_id] = {"content": content}
             except Exception as exc:  # FIXME: Too wide
-                ConanOutput().error("Package %s has no ConanInfo file" % str(pref))
+                ConanOutput().error(f"Package {str(pref)} has no ConanInfo file")
                 if str(exc):
                     ConanOutput().error(str(exc))
     return result
@@ -65,8 +65,7 @@ def search_packages(server_store, ref, look_in_all_rrevs):
     ref_norev.revision = None
     if not os.path.exists(server_store.conan_revisions_root(ref_norev)):
         raise RecipeNotFoundException(ref)
-    infos = _get_local_infos_min(server_store, ref, look_in_all_rrevs)
-    return infos
+    return _get_local_infos_min(server_store, ref, look_in_all_rrevs)
 
 
 class SearchService(object):
@@ -79,8 +78,7 @@ class SearchService(object):
     def search_packages(self, reference, look_in_all_rrevs=False):
         """Shared between v1 and v2, v1 will iterate rrevs"""
         self._authorizer.check_read_conan(self._auth_user, reference)
-        info = search_packages(self._server_store, reference, look_in_all_rrevs)
-        return info
+        return search_packages(self._server_store, reference, look_in_all_rrevs)
 
     def _search_recipes(self, pattern=None, ignorecase=True):
         subdirs = list_folder_subdirs(basedir=self._server_store.store, level=5)

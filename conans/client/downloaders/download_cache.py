@@ -60,15 +60,14 @@ class DownloadCache:
                 refs = content["references"]
                 # unknown entries are not uploaded at this moment, the flow is not expected.
                 if any(ref in all_refs for ref in refs):
-                    files_to_upload.append(f)
-                    files_to_upload.append(f[:-5])
+                    files_to_upload.extend((f, f[:-5]))
         return files_to_upload
 
     @staticmethod
     def update_backup_sources_json(cached_path, conanfile, urls):
         """ create or update the sha256.json file with the references and new urls used
         """
-        summary_path = cached_path + ".json"
+        summary_path = f"{cached_path}.json"
         if os.path.exists(summary_path):
             summary = json.loads(load(summary_path))
         else:

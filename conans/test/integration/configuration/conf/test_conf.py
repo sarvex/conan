@@ -181,12 +181,12 @@ def test_jinja_global_conf(client):
                                        "user.mycompany:dist = {{distro.id() if distro else '42'}}\n"
                                        "user.conan:version = {{conan_version}}-{{conan_version>0.1}}")
     client.run("install .")
-    assert "user.mycompany:parallel={}".format(os.cpu_count()/2) in client.out
-    assert "user.mycompany:other={}".format(platform.system()) in client.out
+    assert f"user.mycompany:parallel={os.cpu_count() / 2}" in client.out
+    assert f"user.mycompany:other={platform.system()}" in client.out
     assert f"user.conan:version={conan_version}-True" in client.out
     if platform.system() == "Linux":
         import distro
-        assert "user.mycompany:dist={}".format(distro.id()) in client.out
+        assert f"user.mycompany:dist={distro.id()}" in client.out
     else:
         assert "user.mycompany:dist=42" in client.out
 

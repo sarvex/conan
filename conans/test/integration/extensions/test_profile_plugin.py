@@ -44,8 +44,9 @@ from conans.test.utils.tools import TestClient
 def test_invalid_cppstd(compiler, version, cppstd, correct):
     c = TestClient()
     c.save({"conanfile.py": GenConanfile()})
-    c.run("create . --name foo --version 1.0 "
-          "-s compiler={} -s compiler.version={} "
-          "-s compiler.cppstd={}".format(compiler, version, cppstd), assert_error=not correct)
+    c.run(
+        f"create . --name foo --version 1.0 -s compiler={compiler} -s compiler.version={version} -s compiler.cppstd={cppstd}",
+        assert_error=not correct,
+    )
     if not correct:
         assert "ERROR: The provided compiler.cppstd" in c.out

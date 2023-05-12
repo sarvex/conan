@@ -15,8 +15,8 @@ class Bazel(object):
     def build(self, args=None, label=None):
         # TODO: Change the directory where bazel builds the project (by default, /var/tmp/_bazel_<username> )
 
-        bazelrc_path = '--bazelrc={}'.format(self._bazelrc_path) if self._bazelrc_path else ''
-        bazel_config = " ".join(['--config={}'.format(conf) for conf in self._bazel_config])
+        bazelrc_path = f'--bazelrc={self._bazelrc_path}' if self._bazelrc_path else ''
+        bazel_config = " ".join([f'--config={conf}' for conf in self._bazel_config])
 
         # arch = self._conanfile.settings.get_safe("arch")
         # cpu = {
@@ -30,11 +30,7 @@ class Bazel(object):
         #     bazel_config,
         #     label
         # )
-        command = 'bazel {} build {} {}'.format(
-            bazelrc_path,
-            bazel_config,
-            label
-        )
+        command = f'bazel {bazelrc_path} build {bazel_config} {label}'
 
         self._conanfile.run(command)
         # This is very important for Windows, as otherwise the bazel server locks files

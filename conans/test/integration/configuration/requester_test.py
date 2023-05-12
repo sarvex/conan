@@ -63,7 +63,7 @@ class ConanRequesterHeadersTests(unittest.TestCase):
             requester = ConanRequester(cache.new_config)
             requester.get(url="aaa")
             headers = mock_http_requester.get.call_args[1]["headers"]
-            self.assertIn("Conan/%s" % __version__, headers["User-Agent"])
+            self.assertIn(f"Conan/{__version__}", headers["User-Agent"])
 
             requester.get(url="aaa", headers={"User-Agent": "MyUserAgent"})
             headers = mock_http_requester.get.call_args[1]["headers"]

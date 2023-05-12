@@ -21,7 +21,7 @@ def test_autotools_lib_template():
     client.run("build .")
 
     client.run("export-pkg .")
-    package_id = re.search(r"Packaging to (\S+)", str(client.out)).group(1)
+    package_id = re.search(r"Packaging to (\S+)", str(client.out))[1]
     ref = RecipeReference.loads("hello/0.1")
     pref = client.get_latest_package_reference(ref, package_id)
     package_folder = client.get_latest_pkg_layout(pref).package()
@@ -35,7 +35,7 @@ def test_autotools_lib_template():
     client.run("build . -o hello/*:shared=True")
     client.run("export-pkg . -o hello/*:shared=True")
     ref = RecipeReference.loads("hello/0.1")
-    package_id = re.search(r"Packaging to (\S+)", str(client.out)).group(1)
+    package_id = re.search(r"Packaging to (\S+)", str(client.out))[1]
     pref = client.get_latest_package_reference(ref, package_id)
     package_folder = client.get_latest_pkg_layout(pref).package()
 
@@ -97,7 +97,7 @@ def test_autotools_relocatable_libs_darwin():
     client.run("create . -o hello/*:shared=True")
 
     build_folder = client.created_test_build_folder("hello/0.1")
-    package_id = re.search(r"Package (\S+) created", str(client.out)).group(1)
+    package_id = re.search(r"Package (\S+) created", str(client.out))[1]
     package_id = package_id.replace("'", "")
     ref = RecipeReference.loads("hello/0.1")
     pref = client.get_latest_package_reference(ref, package_id)
@@ -105,9 +105,9 @@ def test_autotools_relocatable_libs_darwin():
 
     dylib = os.path.join(package_folder, "lib", "libhello.0.dylib")
     if platform.system() == "Darwin":
-        client.run_command("otool -l {}".format(dylib))
+        client.run_command(f"otool -l {dylib}")
         assert "@rpath/libhello.0.dylib" in client.out
-        client.run_command("otool -l {}".format(f"test_package/{build_folder}/main"))
+        client.run_command(f"otool -l test_package/{build_folder}/main")
         assert package_folder in client.out
 
     # will work because rpath set
@@ -122,8 +122,9 @@ def test_autotools_relocatable_libs_darwin():
     assert "Library not loaded: @rpath/libhello.0.dylib" in str(client.out).replace("'", "")
 
     # Use DYLD_LIBRARY_PATH and should run
-    client.run_command("DYLD_LIBRARY_PATH={} test_package/{}/main".format(os.path.join(client.current_folder, "tempfolder"),
-                                                                          build_folder))
+    client.run_command(
+        f'DYLD_LIBRARY_PATH={os.path.join(client.current_folder, "tempfolder")} test_package/{build_folder}/main'
+    )
     assert "hello/0.1: Hello World Release!" in client.out
 
 
@@ -327,13 +328,19 @@ def test_autotools_fix_shared_libs():
     package_folder = client.get_latest_pkg_layout(pref).package()
 
     # install name fixed
-    client.run_command("otool -D {}".format(os.path.join(package_folder, "lib", "libhello.0.dylib")))
+    client.run_command(
+        f'otool -D {os.path.join(package_folder, "lib", "libhello.0.dylib")}'
+    )
     assert "@rpath/libhello.dylib" in client.out
-    client.run_command("otool -D {}".format(os.path.join(package_folder, "lib", "libbye.0.dylib")))
+    client.run_command(
+        f'otool -D {os.path.join(package_folder, "lib", "libbye.0.dylib")}'
+    )
     assert "@rpath/libbye.dylib" in client.out
 
     # dependencies fixed
-    client.run_command("otool -L {}".format(os.path.join(package_folder, "lib", "libbye.0.dylib")))
+    client.run_command(
+        f'otool -L {os.path.join(package_folder, "lib", "libbye.0.dylib")}'
+    )
     assert "/lib/libhello.dylib (compatibility version 1.0.0, current version 1.0.0)" not in client.out
     assert "/lib/libbye.dylib (compatibility version 1.0.0, current version 1.0.0)" not in client.out
     assert "@rpath/libhello.dylib (compatibility version 1.0.0, current version 1.0.0)" in client.out
@@ -341,7 +348,7 @@ def test_autotools_fix_shared_libs():
 
     # app rpath fixed in executable
     exe_path = os.path.join(package_folder, "bin", "main")
-    client.run_command("otool -L {}".format(exe_path))
+    client.run_command(f"otool -L {exe_path}")
     assert "@rpath/libhello.dylib" in client.out
     client.run_command(exe_path)
     assert "Bye, bye!" in client.out

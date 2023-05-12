@@ -25,7 +25,9 @@ def test_upload_parallel_error():
     client.save({"conanfile.py": GenConanfile()})
     client.run('remote login default admin -p password')
     for index in range(4):
-        client.run('create . --name=lib{} --version=1.0 --user=user --channel=channel'.format(index))
+        client.run(
+            f'create . --name=lib{index} --version=1.0 --user=user --channel=channel'
+        )
     client.run('upload lib* --parallel -c -r default --retry-wait=0', assert_error=True)
     assert "Connection fails with lib2 and lib4 references!" in client.out
     assert "Execute upload again to retry upload the failed files" in client.out
@@ -38,9 +40,15 @@ def test_upload_parallel_success():
     client = TestClient(default_server_user=True)
     client.save({"conanfile.py": GenConanfile()})
     client.run('create . --name=lib0 --version=1.0 --user=user --channel=channel')
-    assert "lib0/1.0@user/channel: Package '{}' created".format(NO_SETTINGS_PACKAGE_ID) in client.out
+    assert (
+        f"lib0/1.0@user/channel: Package '{NO_SETTINGS_PACKAGE_ID}' created"
+        in client.out
+    )
     client.run('create . --name=lib1 --version=1.0 --user=user --channel=channel')
-    assert "lib1/1.0@user/channel: Package '{}' created".format(NO_SETTINGS_PACKAGE_ID) in client.out
+    assert (
+        f"lib1/1.0@user/channel: Package '{NO_SETTINGS_PACKAGE_ID}' created"
+        in client.out
+    )
     client.run('remote login default admin -p password')
     client.run('upload lib* --parallel -c -r default')
     assert "Uploading lib0/1.0@user/channel to remote 'default'" in client.out
@@ -59,10 +67,13 @@ def test_upload_parallel_fail_on_interaction():
     client.save({"conanfile.py": GenConanfile()})
     num_references = 2
     for index in range(num_references):
-        client.run('create . --name=lib{} --version=1.0 --user=user --channel=channel'.format(index))
-        assert "lib{}/1.0@user/channel: Package '{}' created".format(
-            index,
-            NO_SETTINGS_PACKAGE_ID) in client.out
+        client.run(
+            f'create . --name=lib{index} --version=1.0 --user=user --channel=channel'
+        )
+        assert (
+            f"lib{index}/1.0@user/channel: Package '{NO_SETTINGS_PACKAGE_ID}' created"
+            in client.out
+        )
     client.run('remote logout default')
     client.run('upload lib* --parallel -c -r default', assert_error=True)
     assert "ERROR: lib0/1.0@user/channel: Upload recipe to 'default' failed: " \

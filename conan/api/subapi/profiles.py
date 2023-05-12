@@ -60,8 +60,7 @@ class ProfilesAPI:
         cache = ClientCache(self._conan_api.cache_folder)
         loader = ProfileLoader(cache)
         cwd = cwd or os.getcwd()
-        profile_path = loader.get_profile_path(profile, cwd, exists=exists)
-        return profile_path
+        return loader.get_profile_path(profile, cwd, exists=exists)
 
     def list(self):
         """

@@ -60,8 +60,7 @@ class URLCredentials:
     def add_auth(self, url, kwargs):
         for u, creds in self._urls.items():
             if url.startswith(u):
-                token = creds.get("token")
-                if token:
+                if token := creds.get("token"):
                     kwargs["headers"]["Authorization"] = f"Bearer {token}"
                 user = creds.get("user")
                 password = creds.get("password")
@@ -122,13 +121,14 @@ class ConanRequester(object):
     def _add_kwargs(self, url, kwargs):
         # verify is the kwargs that comes from caller, RestAPI, it is defined in
         # Conan remote "verify_ssl"
-        if kwargs.get("verify", None) is not False:  # False means de-activate
-            if self._cacert_path is not None:
-                kwargs["verify"] = self._cacert_path
+        if (
+            kwargs.get("verify", None) is not False
+            and self._cacert_path is not None
+        ):
+            kwargs["verify"] = self._cacert_path
         kwargs["cert"] = self._client_certificates
-        if self._proxies:
-            if not self._should_skip_proxy(url):
-                kwargs["proxies"] = self._proxies
+        if self._proxies and not self._should_skip_proxy(url):
+            kwargs["proxies"] = self._proxies
         if self._timeout and self._timeout != INFINITE_TIMEOUT:
             kwargs["timeout"] = self._timeout
         if not kwargs.get("headers"):
@@ -138,11 +138,14 @@ class ConanRequester(object):
 
         # Only set User-Agent if none was provided
         if not kwargs["headers"].get("User-Agent"):
-            platform_info = "; ".join([
-                " ".join([platform.system(), platform.release()]),
-                "Python "+platform.python_version(),
-                platform.machine()])
-            user_agent = "Conan/%s (%s)" % (client_version, platform_info)
+            platform_info = "; ".join(
+                [
+                    " ".join([platform.system(), platform.release()]),
+                    f"Python {platform.python_version()}",
+                    platform.machine(),
+                ]
+            )
+            user_agent = f"Conan/{client_version} ({platform_info})"
             kwargs["headers"]["User-Agent"] = user_agent
 
         return kwargs
@@ -172,9 +175,8 @@ class ConanRequester(object):
                 popped = True if os.environ.pop(var_name.upper(), None) else popped
         try:
             all_kwargs = self._add_kwargs(url, kwargs)
-            tmp = getattr(requests, method)(url, **all_kwargs)
-            return tmp
+            return getattr(requests, method)(url, **all_kwargs)
         finally:
             if popped:
                 os.environ.clear()
-                os.environ.update(old_env)
+                os.environ |= old_env

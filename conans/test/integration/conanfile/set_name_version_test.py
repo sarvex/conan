@@ -23,15 +23,14 @@ class SetVersionNameTest(unittest.TestCase):
             """)
         client.save({"conanfile.py": conanfile})
         user_channel_arg = "--user=user --channel=channel" if user_channel else ""
-        client.run("export . %s" % user_channel_arg)
-        self.assertIn("pkg/2.1%s: Exported" % user_channel,
-                      client.out)
+        client.run(f"export . {user_channel_arg}")
+        self.assertIn(f"pkg/2.1{user_channel}: Exported", client.out)
         # installing it doesn't break
-        client.run("install --requires=pkg/2.1%s --build=missing" % (user_channel or "@"))
+        client.run(f'install --requires=pkg/2.1{user_channel or "@"} --build=missing')
         client.assert_listed_require({f"pkg/2.1{user_channel}": "Cache"})
         client.assert_listed_binary({f"pkg/2.1{user_channel}": (NO_SETTINGS_PACKAGE_ID, "Build")})
 
-        client.run("install --requires=pkg/2.1%s --build=missing" % (user_channel or "@"))
+        client.run(f'install --requires=pkg/2.1{user_channel or "@"} --build=missing')
         client.assert_listed_require({f"pkg/2.1{user_channel}": "Cache"})
         client.assert_listed_binary({f"pkg/2.1{user_channel}": (NO_SETTINGS_PACKAGE_ID, "Cache")})
 
@@ -56,9 +55,13 @@ class SetVersionNameTest(unittest.TestCase):
         client.run("export . --user=user --channel=testing")
         self.assertIn("pkg/2.1@user/testing: Exported", client.out)
         client.run("install --requires=pkg/2.1@user/testing --build=missing")
-        client.assert_listed_binary({f"pkg/2.1@user/testing": (NO_SETTINGS_PACKAGE_ID, "Build")})
+        client.assert_listed_binary(
+            {"pkg/2.1@user/testing": (NO_SETTINGS_PACKAGE_ID, "Build")}
+        )
         client.run("install --requires=pkg/2.1@user/testing")
-        client.assert_listed_binary({f"pkg/2.1@user/testing": (NO_SETTINGS_PACKAGE_ID, "Cache")})
+        client.assert_listed_binary(
+            {"pkg/2.1@user/testing": (NO_SETTINGS_PACKAGE_ID, "Cache")}
+        )
         # Local flow should also work
         client.run("install .")
         self.assertIn("conanfile.py (pkg/2.1):", client.out)

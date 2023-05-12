@@ -63,9 +63,12 @@ def _filter_files(src, pattern, excludes, ignore_case, excluded_folder):
         # Check if any of the subfolders is a symlink
         for subfolder in subfolders:
             relative_path = os.path.relpath(os.path.join(root, subfolder), src)
-            if os.path.islink(os.path.join(root, subfolder)):
-                if fnmatch.fnmatch(os.path.normpath(relative_path.lower()), pattern):
-                    files_symlinked_to_folders.append(relative_path)
+            if os.path.islink(
+                os.path.join(root, subfolder)
+            ) and fnmatch.fnmatch(
+                os.path.normpath(relative_path.lower()), pattern
+            ):
+                files_symlinked_to_folders.append(relative_path)
 
         relative_path = os.path.relpath(root, src)
         compare_relative_path = relative_path.lower() if ignore_case else relative_path

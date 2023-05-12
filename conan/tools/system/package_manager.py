@@ -64,15 +64,14 @@ class _SystemPackageManagerTool(object):
     def get_package_name(self, package):
         # TODO: should we only add the arch if cross-building?
         if self._arch in self._arch_names and cross_building(self._conanfile):
-            return "{}{}{}".format(package, self._arch_separator,
-                                   self._arch_names.get(self._arch))
+            return f"{package}{self._arch_separator}{self._arch_names.get(self._arch)}"
         return package
 
     @property
     def sudo_str(self):
         sudo = "sudo " if self._sudo else ""
         askpass = "-A " if self._sudo and self._sudo_askpass else ""
-        return "{}{}".format(sudo, askpass)
+        return f"{sudo}{askpass}"
 
     def run(self, method, *args, **kwargs):
         if self._active_tool == self.__class__.tool_name:
@@ -81,7 +80,7 @@ class _SystemPackageManagerTool(object):
     def _conanfile_run(self, command, accepted_returns):
         ret = self._conanfile.run(command, ignore_errors=True)
         if ret not in accepted_returns:
-            raise ConanException("Command '%s' failed" % command)
+            raise ConanException(f"Command '{command}' failed")
         return ret
 
     def install_substitutes(self, *args, **kwargs):
@@ -177,16 +176,18 @@ class _SystemPackageManagerTool(object):
             if update:
                 self.update()
 
-            packages_arch = [self.get_package_name(package) for package in packages]
-            if packages_arch:
+            if packages_arch := [
+                self.get_package_name(package) for package in packages
+            ]:
                 command = self.install_command.format(sudo=self.sudo_str,
                                                       tool=self.tool_name,
                                                       packages=" ".join(packages_arch),
                                                       **kwargs)
                 return self._conanfile_run(command, self.accepted_install_codes)
         else:
-            self._conanfile.output.info("System requirements: {} already "
-                                        "installed".format(" ".join(packages)))
+            self._conanfile.output.info(
+                f'System requirements: {" ".join(packages)} already installed'
+            )
 
     def _update(self):
         # we just update the package manager database in case we are in 'install mode'
@@ -196,8 +197,11 @@ class _SystemPackageManagerTool(object):
             return self._conanfile_run(command, self.accepted_update_codes)
 
     def _check(self, packages):
-        missing = [pkg for pkg in packages if self.check_package(self.get_package_name(pkg)) != 0]
-        return missing
+        return [
+            pkg
+            for pkg in packages
+            if self.check_package(self.get_package_name(pkg)) != 0
+        ]
 
     def check_package(self, package):
         command = self.check_command.format(tool=self.tool_name,

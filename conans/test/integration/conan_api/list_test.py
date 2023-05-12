@@ -12,9 +12,12 @@ def _pref_gen():
     With the same recipe, every time the package is built the package revision will be different
     """
     package_lines = 'save(self, os.path.join(self.package_folder, "foo.txt"), str(time.time()))'
-    gen = GenConanfile().with_package(package_lines).with_import("import os, time") \
+    return (
+        GenConanfile()
+        .with_package(package_lines)
+        .with_import("import os, time")
         .with_import("from conan.tools.files import save")
-    return gen
+    )
 
 
 def test_get_recipe_revisions():
